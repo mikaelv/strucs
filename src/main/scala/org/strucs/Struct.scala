@@ -11,7 +11,7 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
   def add[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) : Struct[F with T] = new Struct[F with T](fields + (k.key -> value))
 
   /** Updates an existing field */
-  def update[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:< T ) : Struct[F with T] = new Struct[F with T](fields + (k.key -> value))
+  def update[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:< T ) : Struct[F] = new Struct[F](fields + (k.key -> value))
 
   /** Add all fields from another Struct */
   def merge[F2](rec: Struct[F2]): Struct[F with F2] = new Struct[F with F2](fields ++ rec.fields)
