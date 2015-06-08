@@ -6,6 +6,7 @@ package org.strucs
  * @tparam F mixin of all the fields types
  */
 case class Struct[F](private val fields: Map[StructKey, Any]) {
+  type tpe = F
 
   /** Adds a field. Pass an Option[T] if the field is optional */
   def add[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) : Struct[F with T] = new Struct[F with T](fields + (k.key -> value))
