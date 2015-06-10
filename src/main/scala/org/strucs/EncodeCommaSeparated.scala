@@ -1,5 +1,7 @@
 package org.strucs
 
+import org.strucs.Struct.Nil
+
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
@@ -13,10 +15,10 @@ trait EncodeCommaSeparated[T] {
 /** Defines how a Codec[Struct[_]] can be built using the codecs of its fields */
 trait ComposeCodec[F[_]] {
   self =>
-  /** Build a Codec for a single-field Struct */
-  def pure[A : StructKeyProvider](a: F[A]): F[Struct[A]]
+  /** Build a Codec for an empty Struct */
+  def zero: F[Struct[Nil]]
   /** Build a Codec using a field codec and a codec for the rest of the Struct */
-  def compose[A : StructKeyProvider, B](a: F[A], b: => F[Struct[B]]): F[Struct[A with B]]
+  def prepend[A : StructKeyProvider, B](a: F[A], b: => F[Struct[B]]): F[Struct[A with B]]
 }
 
 
@@ -24,15 +26,22 @@ object EncodeCommaSeparated {
 
   implicit val composeEncode: ComposeCodec[EncodeCommaSeparated] = new ComposeCodec[EncodeCommaSeparated] {
 
-    override def pure[A : StructKeyProvider](ea: EncodeCommaSeparated[A]): EncodeCommaSeparated[Struct[A]] = new EncodeCommaSeparated[Struct[A]] {
-      override def encode(t: Struct[A]): String = ea.encode(t.get[A])
+
+    /** Build a Codec for an empty Struct */
+    override def zero: EncodeCommaSeparated[Struct[Nil]] = new EncodeCommaSeparated[Struct[Nil]] {
+      override def encode(t: Struct[Nil]): String = ""
     }
 
-    override def compose[A : StructKeyProvider, B](ea: EncodeCommaSeparated[A], eb: => EncodeCommaSeparated[Struct[B]]): EncodeCommaSeparated[Struct[A with B]] = new EncodeCommaSeparated[Struct[A with B]] {
+    override def prepend[A : StructKeyProvider, B](ea: EncodeCommaSeparated[A],
+                                                   eb: => EncodeCommaSeparated[Struct[B]]): EncodeCommaSeparated[Struct[A with B]] = new EncodeCommaSeparated[Struct[A with B]] {
       override def encode(t: Struct[A with B]): String = {
-        ea.encode(t.get[A]) +
-          ", " +
-          eb.encode(t.asInstanceOf[Struct[B]]) // TODO implement shrink ?
+        val encodea = ea.encode(t.get[A]) 
+        val encodeb = eb.encode(t.asInstanceOf[Struct[B]]) // TODO implement shrink ?
+        if (encodeb != zero.encode(Struct.empty))
+          encodea +", "+encodeb
+        else
+          encodea
+
       }
     }
   }
@@ -41,21 +50,20 @@ object EncodeCommaSeparated {
   def macroImpl[T : c.WeakTypeTag](c: whitebox.Context) = {
     import c.universe._
 
-    // TODO 1 detect constituents => use asClass.isDerivedValueClass as a first trick !
     val typeTag = implicitly[c.WeakTypeTag[T]]
-    val symbols = typeTag.tpe.baseClasses.filter { sbl: Symbol => sbl.isClass && sbl.asClass.isDerivedValueClass }
-    val symbol1 = typeTag.tpe.baseClasses.head
-    val symbol2 = symbols.head
-    val symbol3 = symbols.last
-
+    // Detect constituents using the fact that they are all value classes
+    val symbols = typeTag.tpe.baseClasses.filter { sbl: Symbol =>
+      sbl.isClass && sbl.asClass.isDerivedValueClass
+    }
 
     // TODO make generic for any Codec
-    val t1 = q"implicitly[EncodeCommaSeparated[$symbol1]]"
-    val t2 = q"implicitly[EncodeCommaSeparated[$symbol2]]"
-    val t3 = q"implicitly[EncodeCommaSeparated[$symbol3]]"
+    def implicitCodec(typeSymbol: Symbol): Tree = q"implicitly[EncodeCommaSeparated[$typeSymbol]]"
 
-    val compose = q"implicitly[ComposeCodec[EncodeCommaSeparated]]"
-    q"""$compose.compose($t3, $compose.pure($t2))"""
+
+    val composed = symbols.foldLeft[Tree](q"comp.zero"){ case (tree, sbl) =>
+      q"comp.prepend(${implicitCodec(sbl)}, $tree)"
+    }
+    q"val comp = implicitly[ComposeCodec[EncodeCommaSeparated]]; $composed"
   }
 
 

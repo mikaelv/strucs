@@ -8,6 +8,8 @@ package org.strucs
 case class Struct[F](private val fields: Map[StructKey, Any]) {
   type tpe = F
 
+  def +[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) = add[T](value)
+
   /** Adds a field. Pass an Option[T] if the field is optional */
   def add[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) : Struct[F with T] = new Struct[F with T](fields + (k.key -> value))
 
@@ -24,7 +26,10 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
 }
 
 object Struct {
-  def apply[T](t: T)(implicit k: StructKeyProvider[T]): Struct[T] = new Struct(Map(k.key -> t))
+  trait Nil
+
+  def apply[T](t: T)(implicit k: StructKeyProvider[T]): Struct[T with Nil] = new Struct(Map(k.key -> t))
+  def empty: Struct[Nil] = new Struct[Nil](Map.empty)
 }
 
 
