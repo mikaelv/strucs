@@ -1,6 +1,6 @@
 package org.strucs
 
 /**
- * Created by mikael on 21/05/15.
+ * Key for retrieving a field in a Struct
  */
 case class StructKey(value: String)
