@@ -1,8 +1,18 @@
 package com.strucs.fix
 
-/**
- * Created by mikael on 11/06/15.
- */
-class FixCodec {
+import org.strucs.{Wrapper, Struct}
 
+/**
+ * typeclass. Defines how a type can be encoded/decoded to/from FIX.
+ */
+trait FixCodec[A] {
+  def encode(a: A): FixElement
+}
+
+
+object FixCodec {
+
+  class FixTag[W, V](tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
+    override def encode(a: W): FixElement = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
+  }
 }
