@@ -4,6 +4,7 @@ import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{Matchers, FlatSpec}
 import EncoderSpec._
 import org.strucs.Struct.Nil
+//import ComposeCodec.makeCodec
 
 /**
  *
@@ -14,8 +15,9 @@ class EncoderSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
     val person = Struct.empty + Name("Bart") + Age(10) + City("Springfield")
 
-    // TODO use implicit materializer :-D
-    val encoder: EncodeCommaSeparated[Struct[Name with Age with City with Nil]] = ComposeCodec.makeCodec[EncodeCommaSeparated, person.tpe]
+    // TODO why fundep materializer doesn't work ?
+    //val encoder = implicitly[EncodeCommaSeparated[Struct[Name with Age with City with Nil]]]
+    val encoder: EncodeCommaSeparated[Struct[Name with Age with City with Nil]] = ComposeCodec.makeCodec[EncodeCommaSeparated, Name with Age with City with Nil]
     encoder.encode(person) should === ("Bart, 10, Springfield")
   }
 }
@@ -42,7 +44,7 @@ object EncoderSpec {
                                                     eb: => EncodeCommaSeparated[Struct[B]]): EncodeCommaSeparated[Struct[A with B]] = new EncodeCommaSeparated[Struct[A with B]] {
         override def encode(t: Struct[A with B]): String = {
           val encodea = ea.encode(t.get[A])
-          val encodeb = eb.encode(t.asInstanceOf[Struct[B]]) // TODO implement shrink ?
+          val encodeb = eb.encode(t.shrink[B])
           if (encodeb != zero.encode(Struct.empty))
             encodea + ", " + encodeb
           else

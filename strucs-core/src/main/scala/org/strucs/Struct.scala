@@ -22,6 +22,13 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
   /** Get a field */
   def get[T](implicit k: StructKeyProvider[T], ev: F <:< T): T = fields(k.key).asInstanceOf[T]
 
+  /** Get a subset of the fields */
+  def shrink[F2](implicit ev: F <:< F2): Struct[F2] = {
+    // the internal Map is kept untouched, but the evidence parameters of all accessors guarantee that
+    // removed fields will not be accessible anymore
+    this.asInstanceOf[Struct[F2]]
+  }
+
   private[this] def getByKey(key: StructKey): Any = fields(key)
 }
 

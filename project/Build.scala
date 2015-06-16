@@ -31,7 +31,7 @@ object StrucsBuild extends Build {
     "strucs-fix",
     file("strucs-fix"),
     settings = buildSettings ++ Seq(
-      libraryDependencies ++= scalaTest
+      libraryDependencies ++= scalaTest ++ joda
     )
   ) dependsOn(core)
 
@@ -45,6 +45,7 @@ object StrucsBuild extends Build {
       ))
   )
 
-  lazy val scalaTest = Seq(
-    "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test")
+  lazy val scalaTest = Seq("org.scalatest" % "scalatest_2.11" % "2.2.4" % "test")
+
+  lazy val joda = Seq("joda-time" % "joda-time" % "2.8")
 }

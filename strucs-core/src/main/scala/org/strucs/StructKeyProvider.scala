@@ -15,5 +15,5 @@ object StructKeyProvider {
   implicit def convertToSome[T](implicit rk: StructKeyProvider[T]): StructKeyProvider[Some[T]] = new StructKeyProvider[Some[T]](StructKey(rk.key.value))
 
   /** Provides a key using the Class name. Beware of ADT types: use Option(x) instead of Some(x) */
-  implicit def simpleNameStructKeyProvider[A : TypeTag]: StructKeyProvider[A] = StructKeyProvider[A](StructKey(implicitly[TypeTag[A]].tpe.toString))
+  implicit def simpleNameStructKeyProvider[A : TypeTag]: StructKeyProvider[A] = StructKeyProvider[A](StructKey(implicitly[TypeTag[A]].tpe.typeSymbol.toString))
 }

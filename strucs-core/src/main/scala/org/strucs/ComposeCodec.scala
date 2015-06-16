@@ -25,6 +25,7 @@ object ComposeCodec {
 
     val typeTag = implicitly[c.WeakTypeTag[T]]
     // Detect constituents using the fact that they are all value classes
+    // TODO use a more generic approach: what about case object enums, Either, Option, ... ?
     val symbols = typeTag.tpe.baseClasses.filter { sbl: Symbol =>
       sbl.isClass && sbl.asClass.isDerivedValueClass
     }
@@ -32,14 +33,15 @@ object ComposeCodec {
     val codecTypeTag = implicitly[c.WeakTypeTag[Codec]]
     val codecSymbol = codecTypeTag.tpe.typeSymbol
 
-    // TODO make generic for any Codec
     def implicitCodec(typeSymbol: Symbol): Tree = q"implicitly[$codecSymbol[$typeSymbol]]"
 
 
     val composed = symbols.foldLeft[Tree](q"comp.zero"){ case (tree, sbl) =>
       q"comp.prepend(${implicitCodec(sbl)}, $tree)"
     }
-    q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed"
+    val codec = q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed"
+    //println(typeTag + " " + codec)
+    codec
   }
 
 
