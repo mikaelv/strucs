@@ -37,4 +37,13 @@ object FixCodec {
     }
 
   }
+
+  /** Automatically create a FixCodec for any Struct[A]
+    * @tparam A mixin, each type of the mixin having a FixCodec */
+  implicit def makeFixCodec[A]: FixCodec[Struct[A]] = ComposeCodec.makeCodec[FixCodec, A]
+
+  /** Pimp Struct with helpful methods */
+  implicit class FixCodecOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
+    def toFixString: String = codec.encode(struct).toFixString
+  }
 }

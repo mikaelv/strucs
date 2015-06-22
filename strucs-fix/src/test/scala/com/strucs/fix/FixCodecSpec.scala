@@ -5,6 +5,7 @@ import org.joda.time.{DateTimeZone, DateTime}
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.{ComposeCodec, Struct}
+import FixCodec._
 
 
 /**
@@ -32,9 +33,11 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
       HandlInst("1") + // TODO enum
       SecurityExchange("N")
 
-    val encode: FixCodec[Struct[struct.tpe]] = ComposeCodec.makeCodec[FixCodec, struct.tpe]
-    val actualFix = encode.encode(struct).toFixString
+    val actualFix = struct.toFixString
 
+
+
+    // TODO implement BodyLength and CheckSum calculations in the message
     /*val expectedFix = """8=FIX.4.2;
                 |9=145;
                 |35=D;

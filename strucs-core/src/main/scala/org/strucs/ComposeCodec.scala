@@ -3,7 +3,8 @@ package org.strucs
 import org.strucs.Struct.Nil
 
 import scala.language.experimental.macros
-import scala.reflect.macros.whitebox
+import scala.reflect.macros.blackbox
+import languageFeature.higherKinds
 
 
 
@@ -20,7 +21,10 @@ trait ComposeCodec[Codec[_]] {
 
 object ComposeCodec {
 
-  def macroImpl[Codec: c.WeakTypeTag, T : c.WeakTypeTag](c: whitebox.Context) = {
+  /** Make a Codec for a Struct[T], by calling the ComposeCodec for each constituent of T */
+  def makeCodec[Codec[_], T]: Codec[Struct[T]] = macro macroImpl[Codec[_], T]
+
+  def macroImpl[Codec: c.WeakTypeTag, T : c.WeakTypeTag](c: blackbox.Context) = {
     import c.universe._
 
     val typeTag = implicitly[c.WeakTypeTag[T]]
@@ -39,14 +43,13 @@ object ComposeCodec {
     val composed = symbols.foldLeft[Tree](q"comp.zero"){ case (tree, sbl) =>
       q"comp.prepend(${implicitCodec(sbl)}, $tree)"
     }
-    val codec = q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed"
-    //println(typeTag + " " + codec)
+    val codec = q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed.asInstanceOf[$codecSymbol[Struct[${typeTag.tpe}]]]"
+    //c.info(c.enclosingPosition, typeTag.tpe + " " + codec, true)
     codec
   }
 
 
-  /** Make a Codec for a Struct[T], by calling the ComposeCodec for each constituent of T */
-  def makeCodec[Codec[_], T]: Codec[Struct[T]] = macro macroImpl[Codec[_], T]
+
 }
 
 

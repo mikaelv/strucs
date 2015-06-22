@@ -1,6 +1,6 @@
 package org.strucs
 
-import scala.reflect.macros.whitebox
+import scala.reflect.macros.blackbox
 import scala.language.experimental.macros
 
 /** typeclass for wrapper types, such as case class Name(v: String)
@@ -14,7 +14,7 @@ trait Wrapper[W, V] {
 }
 
 object Wrapper {
-  def macroImpl[W: c.WeakTypeTag, V : c.WeakTypeTag](c: whitebox.Context) = {
+  def macroImpl[W: c.WeakTypeTag, V : c.WeakTypeTag](c: blackbox.Context) = {
     import c.universe._
     val wsym = c.weakTypeOf[W].typeSymbol
     val vsym = c.weakTypeOf[V].typeSymbol
