@@ -4,14 +4,16 @@ import org.strucs.Struct.Nil
 import org.strucs.{StructKeyProvider, ComposeCodec, Wrapper, Struct}
 import scala.language.experimental.macros
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
  * typeclass. Defines how a Struct can be encoded/decoded to/from FIX.
  */
 trait FixCodec[A] {
   def encode(a: A): FixElement
+  def decode(fix: FixElement): Try[A]
 }
+
 
 
 
@@ -24,6 +26,17 @@ object FixCodec {
   /** Encodes a single tag */
   class FixTagCodec[W, V](tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
     override def encode(a: W): FixElement = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
+
+    /** @param fix is always a FixGroup when called from outside */
+    override def decode(fix: FixElement): Try[W] = fix match {
+      case FixTagValue(t, value) if t == tag => valueCodec.decode(value) flatMap {
+        wrapper.make(_).map(Success(_)).getOrElse(Failure(new FixDecodeException(s"Wrapper: $wrapper cannot parse $value in tag $t")))
+      }
+
+      // get the FixTagValue and call decode again
+      case g@FixGroup(pairs) => g.get(tag).map(decode).getOrElse(Failure(new FixDecodeException(s"Cannot find tag $tag in $fix")))
+      case _ => Failure(new FixDecodeException(s"Cannot decode $fix"))
+    }
   }
 
 
@@ -37,18 +50,27 @@ object FixCodec {
         afix + bfix
       }
 
+      override def decode(fix: FixElement): Try[Struct[A with B]] = {
+        for {
+          structb <- cb.decode(fix)
+          a <- ca.decode(fix)
+
+        } yield structb.add[A](a)
+      }
     }
 
     /** Build a Codec for an empty Struct */
     override def zero: FixCodec[Struct[Nil]] = new FixCodec[Struct[Nil]] {
       override def encode(a: Struct[Nil]): FixElement = FixGroup.empty
+
+      override def decode(fix: FixElement): Try[Struct[Nil]] = Success(Struct.empty)
     }
 
   }
 
 
   /** Pimp Struct with helpful methods */
-  implicit class FixCodecOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
+  implicit class FixEncodeOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
     def toFixMessage: FixMessage = {
       // TODO extract 8 and 35 from A
       FixMessage("FIX.4.2", "D", codec.encode(struct).toGroup)
@@ -56,4 +78,14 @@ object FixCodec {
 
     def toFixMessageString: String = toFixMessage.toFixString
   }
+
+  implicit class FixDecodeOps(fixString: String) {
+    def toStruct[A](implicit codec: FixCodec[Struct[A]]): Try[Struct[A]] = {
+      for {
+        fixMsg <- FixMessage.decode(fixString)
+        struct <- codec.decode(fixMsg.body)
+      } yield struct
+    }
+  }
+
 }

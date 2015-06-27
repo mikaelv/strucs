@@ -21,7 +21,7 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
     def toSOH: String = s.stripMargin.replaceAll("[;\n]", SOH)
   }
 
-  "a FixCodec" should "encode a New Order Single" in {
+  "a FixCodec" should "encode/decode a New Order Single" in {
     val struct = Struct.empty +
       // TODO BeginString("FIX.4.2") +
       // TODO MsgType("D") +
@@ -41,11 +41,7 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
       HandlInst("1") + // TODO enum
       SecurityExchange("N")
 
-    val actualFix = struct.toFixMessageString
-
-
-    // Is the NYSE message bogus ?? 9 should be 146, and checksum does not look right => try with other sample
-    val expectedFix =
+    val fixString =
       """8=FIX.4.2
         |9=146
         |35=D
@@ -64,10 +60,15 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
         |60=20090323-15:40:29
         |21=1
         |207=N
-        |10=195""".toSOH
+        |10=195
+        |""".toSOH
 
 
-    actualFix should be (expectedFix)
+    val encodedFix = struct.toFixMessageString
+    encodedFix should be (fixString)
+
+    val decodedStruct = fixString.toStruct[struct.Mixin]
+    decodedStruct should === (Success(struct))
   }
 
 

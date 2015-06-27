@@ -6,7 +6,7 @@ package org.strucs
  * @tparam F mixin of all the fields types
  */
 case class Struct[F](private val fields: Map[StructKey, Any]) {
-  type tpe = F
+  type Mixin = F
 
   def +[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) = add[T](value)
 
