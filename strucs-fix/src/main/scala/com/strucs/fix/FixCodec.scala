@@ -2,6 +2,7 @@ package com.strucs.fix
 
 import org.strucs.Struct.Nil
 import org.strucs.{StructKeyProvider, ComposeCodec, Wrapper, Struct}
+import scala.language.experimental.macros
 
 import scala.util.Try
 
@@ -15,7 +16,12 @@ trait FixCodec[A] {
 
 
 object FixCodec {
+  /** Automatically create a FixCodec for any Struct[A]
+    * @tparam T mixin, each type of the mixin must have a FixCodec */
+  implicit def makeFixCodec[T]: FixCodec[Struct[T]] = macro ComposeCodec.macroImpl[FixCodec[_], T]
 
+
+  /** Encodes a single tag */
   class FixTagCodec[W, V](tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
     override def encode(a: W): FixElement = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
   }
@@ -40,9 +46,6 @@ object FixCodec {
 
   }
 
-  /** Automatically create a FixCodec for any Struct[A]
-    * @tparam A mixin, each type of the mixin having a FixCodec */
-  implicit def makeFixCodec[A]: FixCodec[Struct[A]] = ComposeCodec.makeCodec[FixCodec, A]
 
   /** Pimp Struct with helpful methods */
   implicit class FixCodecOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {

@@ -41,12 +41,7 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
       HandlInst("1") + // TODO enum
       SecurityExchange("N")
 
-    // TODO auto creation does not work :-(
-    implicit val codec = ComposeCodec.makeCodec[FixCodec, struct.tpe]
-    //val codec = implicitly[FixCodec[Struct[struct.tpe]]]
-    //val actualFix = Success(codec.encode(struct).toFixString)
     val actualFix = struct.toFixMessageString
-    //val actualFix = struct.toFixMessageString
 
 
     // Is the NYSE message bogus ?? 9 should be 146, and checksum does not look right => try with other sample
