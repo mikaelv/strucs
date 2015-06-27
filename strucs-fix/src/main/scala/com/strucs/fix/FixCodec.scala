@@ -3,6 +3,8 @@ package com.strucs.fix
 import org.strucs.Struct.Nil
 import org.strucs.{StructKeyProvider, ComposeCodec, Wrapper, Struct}
 
+import scala.util.Try
+
 /**
  * typeclass. Defines how a Struct can be encoded/decoded to/from FIX.
  */
@@ -33,7 +35,7 @@ object FixCodec {
 
     /** Build a Codec for an empty Struct */
     override def zero: FixCodec[Struct[Nil]] = new FixCodec[Struct[Nil]] {
-      override def encode(a: Struct[Nil]): FixElement = FixNil
+      override def encode(a: Struct[Nil]): FixElement = FixGroup.empty
     }
 
   }
@@ -44,6 +46,11 @@ object FixCodec {
 
   /** Pimp Struct with helpful methods */
   implicit class FixCodecOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
-    def toFixString: String = codec.encode(struct).toFixString
+    def toFixMessage: FixMessage = {
+      // TODO extract 8 and 35 from A
+      FixMessage("FIX.4.2", "D", codec.encode(struct).toGroup)
+    }
+
+    def toFixMessageString: String = toFixMessage.toFixString
   }
 }
