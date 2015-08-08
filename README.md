@@ -54,7 +54,9 @@ totalPrice(order3.add(Price(10)))
 
 
 ### Encoding/Decoding
-
+```scala
+In Progress, see FixCodecSpec
+```
 
 ## Motivation
 

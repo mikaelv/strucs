@@ -23,8 +23,8 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
   "a FixCodec" should "encode/decode a New Order Single" in {
     val struct = Struct.empty +
-      // TODO BeginString("FIX.4.2") +
-      // TODO MsgType("D") +
+      BeginString.Fix42 +
+      MsgType.OrderSingle +
       MsgSeqNum("4") + // TODO remove ?: protocol field
       SenderCompID("ABC_DEFG01") +
       SendingTime(new DateTime(2009,3,23,15,40,29, DateTimeZone.UTC)) +
@@ -68,7 +68,7 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
     encodedFix should be (fixString)
 
     val decodedStruct = fixString.toStruct[struct.Mixin]
-    decodedStruct should === (Success(struct))
+    decodedStruct.get should === (struct)
   }
 
 
@@ -76,12 +76,12 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
   "A FixMessage" should "encode with length and checksum" in {
     // Example from https://en.wikipedia.org/wiki/Financial_Information_eXchange#Body_length
-    val msg = FixMessage("FIX.4.2", "A", FixGroup(49 -> "SERVER", 56 -> "CLIENT", 34 -> "177", 52 -> "20090107-18:15:16", 98 -> "0", 108 -> "30"))
+    val msg = FixMessage(BeginString.Fix42TV, MsgType.LogonTV, FixGroup(49 -> "SERVER", 56 -> "CLIENT", 34 -> "177", 52 -> "20090107-18:15:16", 98 -> "0", 108 -> "30"))
     msg.toFixString should be (fixMsgString)
   }
 
   "A FixMessage" should "decode" in {
-    FixMessage.decode(fixMsgString) should ===(Success(FixMessage("FIX.4.2", "A", FixGroup(49 -> "SERVER", 56 -> "CLIENT", 34 -> "177", 52 -> "20090107-18:15:16", 98 -> "0", 108 -> "30"))))
+    FixMessage.decode(fixMsgString) should ===(Success(FixMessage(BeginString.Fix42TV, MsgType.LogonTV, FixGroup(49 -> "SERVER", 56 -> "CLIENT", 34 -> "177", 52 -> "20090107-18:15:16", 98 -> "0", 108 -> "30"))))
   }
 
   "A FixMessage" should "keep the same fix string after decode and encode" in {

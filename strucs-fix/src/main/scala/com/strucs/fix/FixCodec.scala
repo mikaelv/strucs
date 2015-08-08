@@ -1,5 +1,6 @@
 package com.strucs.fix
 
+import com.strucs.fix.dict.fix42.{MsgType, BeginString}
 import org.strucs.Struct.Nil
 import org.strucs.{StructKeyProvider, ComposeCodec, Wrapper, Struct}
 import scala.language.experimental.macros
@@ -24,8 +25,8 @@ object FixCodec {
 
 
   /** Encodes a single tag */
-  class FixTagCodec[W, V](tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
-    override def encode(a: W): FixElement = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
+  class FixTagCodec[W, V](val tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
+    override def encode(a: W): FixTagValue = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
 
     /** @param fix is always a FixGroup when called from outside */
     override def decode(fix: FixElement): Try[W] = fix match {
@@ -35,6 +36,14 @@ object FixCodec {
 
       // get the FixTagValue and call decode again
       case g@FixGroup(pairs) => g.get(tag).map(decode).getOrElse(Failure(new FixDecodeException(s"Cannot find tag $tag in $fix")))
+      case m@FixMessage(beginStr, msgType, body) =>
+        if (tag == MsgType.Tag)
+          decode(msgType)
+        else if (tag == BeginString.Tag)
+          decode(beginStr)
+        else
+          body.get(tag).map(decode).getOrElse(Failure(new FixDecodeException(s"Cannot find tag $tag in $fix")))
+
       case _ => Failure(new FixDecodeException(s"Cannot decode $fix"))
     }
   }
@@ -70,10 +79,12 @@ object FixCodec {
 
 
   /** Pimp Struct with helpful methods */
-  implicit class FixEncodeOps[A](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
+  implicit class FixEncodeOps[A <: MsgType with BeginString](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
     def toFixMessage: FixMessage = {
-      // TODO extract 8 and 35 from A
-      FixMessage("FIX.4.2", "D", codec.encode(struct).toGroup)
+      FixMessage(
+        BeginString.codec.encode(struct.get[BeginString]),
+        MsgType.codec.encode(struct.get[MsgType]),
+        codec.encode(struct).toGroup.remove(Set(MsgType.codec.tag, BeginString.codec.tag)))
     }
 
     def toFixMessageString: String = toFixMessage.toFixString
@@ -83,7 +94,7 @@ object FixCodec {
     def toStruct[A](implicit codec: FixCodec[Struct[A]]): Try[Struct[A]] = {
       for {
         fixMsg <- FixMessage.decode(fixString)
-        struct <- codec.decode(fixMsg.body)
+        struct <- codec.decode(fixMsg)
       } yield struct
     }
   }

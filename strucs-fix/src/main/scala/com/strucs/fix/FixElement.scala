@@ -1,12 +1,14 @@
 package com.strucs.fix
 
+import com.strucs.fix.dict.fix42.{MsgType, BeginString}
+
 import scala.util.{Failure, Success, Try}
 
 /**
  * Can be a tag/value pair or a Group of tag/value pair
  */
 sealed trait FixElement {
-  def +(other: FixElement): FixGroup
+  def +(other: FixElement): FixElement
 
   def toFixString: String
 
@@ -17,9 +19,10 @@ sealed trait FixElement {
 
 /** Tag/Value Pair */
 case class FixTagValue(tag: Int, value: String) extends FixElement {
-  override def +(other: FixElement): FixGroup = other match {
+  override def +(other: FixElement): FixElement = other match {
     case FixGroup(pairs) => FixGroup(this +: pairs)
     case t@FixTagValue(_, _) => FixGroup(Vector(this, t))
+    case m@FixMessage(_, _, FixGroup(pairs)) => m.copy(body = FixGroup(this +: pairs))
   }
 
   def toFixString: String = s"$tag=$value"
@@ -41,9 +44,10 @@ object FixTagValue {
 case class FixGroup(pairs: Vector[FixTagValue]) extends FixElement {
   import FixGroup.SOH
 
-  override def +(other: FixElement): FixGroup = other match {
+  override def +(other: FixElement): FixElement = other match {
     case FixGroup(o) => FixGroup(pairs ++ o)
     case t@FixTagValue(_, _) => FixGroup(pairs :+ t)
+    case m@FixMessage(_, _, FixGroup(o)) => m.copy(body = FixGroup(pairs ++ o))
   }
 
   def toFixString: String = pairs.map(_.toFixString).mkString("", SOH, "")
@@ -81,13 +85,16 @@ object FixGroup {
 import FixGroup.SOH
 
 /** Represents a Fix message, encodes the length and checksum when writing to a String */
-case class FixMessage(beginString: String, msgType: String, body: FixGroup) { // TODO pass beginString/msgType as specific pairs
-  def beginStringGroup = FixGroup(8 -> beginString)
-  def msgTypeGroup = FixGroup(35 -> msgType)
+case class FixMessage(beginString: FixTagValue, msgType: FixTagValue, body: FixGroup) extends FixElement {
+
+  override def +(other: FixElement): FixElement = body + other
+
+  override def toGroup: FixGroup = body
+
 
   def headerWithLength: FixGroup = {
-    val bodyLength = (msgTypeGroup.length + 1 + body.length + 1).toString
-    new FixGroup(beginStringGroup.pairs ++ Vector(FixTagValue(9, bodyLength)) ++ msgTypeGroup.pairs)
+    val bodyLength = (msgType.toGroup.length + 1 + body.length + 1).toString
+    new FixGroup(Vector(beginString, FixTagValue(9, bodyLength), msgType))
   }
 
   def trailer: FixGroup = FixGroup(10 -> ((headerWithLength.checksum + 1 + body.checksum + 1) % 256).formatted("%03d"))
@@ -101,7 +108,7 @@ object FixMessage {
       val optMsg = for {
         tag35 <- g.get(35)
         tag8 <- g.get(8)
-      } yield FixMessage(tag8.value, tag35.value, g.remove(Set(8, 35, 9, 10)))
+      } yield FixMessage(tag8, tag35, g.remove(Set(8, 35, 9, 10)))
       optMsg match {
         case None => Failure(new FixDecodeException(s"Tags 8 or 35 not found in $fix"))
         case Some(msg) => Success(msg)

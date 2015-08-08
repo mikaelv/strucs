@@ -12,7 +12,11 @@ package object fix42 {
 
   case class BeginString(v: String) extends AnyVal
   object BeginString {
-    implicit val codec: FixCodec[BeginString] = new FixTagCodec[BeginString, String](8)
+    val Fix42 = BeginString("FIX.4.2")
+    val Tag = 8
+    implicit val codec = new FixTagCodec[BeginString, String](Tag)
+
+    val Fix42TV = codec.encode(Fix42)
   }
 
   case class BodyLength(v: Int) extends AnyVal
@@ -42,7 +46,13 @@ package object fix42 {
 
   case class MsgType(v: String) extends AnyVal
   object MsgType {
-    implicit val codec: FixCodec[MsgType] = new FixTagCodec[MsgType, String](35)
+    val OrderSingle = MsgType("D")
+    val Logon = MsgType("A")
+    val Tag = 35
+    implicit val codec = new FixTagCodec[MsgType, String](Tag)
+
+    val OrderSingleTV = codec.encode(OrderSingle)
+    val LogonTV = codec.encode(Logon)
   }
 
   case class OrderQty(v: String) extends AnyVal
