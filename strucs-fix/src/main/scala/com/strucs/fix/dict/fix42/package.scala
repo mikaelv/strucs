@@ -3,6 +3,7 @@ package com.strucs.fix.dict
 import com.strucs.fix.FixCodec
 import com.strucs.fix.FixCodec.FixTagCodec
 import org.joda.time.DateTime
+import org.strucs.{StructField, Wrapper}
 import org.strucs.Wrapper.materializeWrapper
 
 /**
@@ -55,9 +56,9 @@ package object fix42 {
     val LogonTV = codec.encode(Logon)
   }
 
-  case class OrderQty(v: String) extends AnyVal
+  case class OrderQty(v: BigDecimal) extends AnyVal
   object OrderQty {
-    implicit val codec: FixCodec[OrderQty] = new FixTagCodec[OrderQty, String](38)
+    implicit val codec: FixCodec[OrderQty] = new FixTagCodec[OrderQty, BigDecimal](38)
   }
 
   case class OrdType(v: String) extends AnyVal
@@ -80,8 +81,15 @@ package object fix42 {
     implicit val codec: FixCodec[SendingTime] = new FixTagCodec[SendingTime, DateTime](52)
   }
 
-  case class Side(v: String) extends AnyVal
+  abstract class Side(val v: String) extends StructField
   object Side {
+    case object Buy extends Side("1")
+    case object Sell extends Side("2")
+
+    val all = Seq(Buy, Sell)
+    def make(fixValue: String): Option[Side] = all.find(_.v == fixValue)
+
+    implicit val wrapper: Wrapper[Side, String] = Wrapper(make, _.v)
     implicit val codec: FixCodec[Side] = new FixTagCodec[Side, String](54)
   }
 

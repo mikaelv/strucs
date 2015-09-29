@@ -31,8 +31,8 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
       TargetCompID("CCG") +
       OnBehalfOfCompID("XYZ") +
       ClOrdId("NF 0542/03232009") +
-      Side("1") + // TODO enum
-      OrderQty("100") + // TODO BigDecimal
+      (Side.Buy: Side) +
+      OrderQty(100) +
       Symbol("CVS") +
       OrdType("1") + // TODO enum
       TimeInForce("0") +

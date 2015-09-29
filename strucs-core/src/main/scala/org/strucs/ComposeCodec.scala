@@ -24,15 +24,30 @@ object ComposeCodec {
   /** Make a Codec for a Struct[T], by calling the ComposeCodec for each constituent of T */
   def makeCodec[Codec[_], T]: Codec[Struct[T]] = macro macroImpl[Codec[_], T]
 
+
+
   def macroImpl[Codec: c.WeakTypeTag, T : c.WeakTypeTag](c: blackbox.Context) = {
     import c.universe._
+    def info(msg: String) = c.info(c.enclosingPosition, "org.structs.ComposeCodec - "+msg, true)
+
+    val nilSymbol = typeOf[Nil].typeSymbol
+    def extractFieldsSymbols(mixin: Type, acc: List[Symbol] = List.empty): List[Symbol] = mixin match {
+      case RefinedType(types, _) => types.foldLeft(acc){ (symbols, tpe) => extractFieldsSymbols(tpe, symbols) }
+      case TypeRef(pre, sym, args) => extractFieldsSymbols(sym.typeSignatureIn(pre), acc)
+      case t if t.typeSymbol == nilSymbol => acc
+      case _ =>
+        val v = mixin.typeSymbol +: acc
+        //info("extracted symbol: "+mixin)
+        v
+    }
+
 
     val typeTag = implicitly[c.WeakTypeTag[T]]
-    // Detect constituents using the fact that they are all value classes
-    // TODO use a more generic approach: what about case object enums, Either, Option, ... ?
-    val symbols = typeTag.tpe.baseClasses.filter { sbl: Symbol =>
-      sbl.isClass && sbl.asClass.isDerivedValueClass
-    }
+    // Extract constituents
+    //info("creating codec for type: "+typeTag.tpe.toString)
+
+    val symbols = extractFieldsSymbols(typeTag.tpe)
+    //info("extracted symbols: "+symbols.mkString(", "))
 
     val codecTypeTag = implicitly[c.WeakTypeTag[Codec]]
     val codecSymbol = codecTypeTag.tpe.typeSymbol
@@ -44,7 +59,7 @@ object ComposeCodec {
       q"comp.prepend(${implicitCodec(sbl)}, $tree)"
     }
     val codec = q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed.asInstanceOf[$codecSymbol[Struct[${typeTag.tpe}]]]"
-    //c.info(c.enclosingPosition, typeTag.tpe + " " + codec, true)
+    //info("codec = "+codec.toString)
     codec
   }
 

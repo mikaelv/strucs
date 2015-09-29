@@ -24,6 +24,13 @@ object FixValueCodec {
     override def decode(s: String): Try[Int] = Try { s.toInt }
   }
 
+
+  implicit object BigDecimalValueCodec extends FixValueCodec[BigDecimal] {
+    override def encode(a: BigDecimal): String = a.toString
+
+    override def decode(s: String): Try[BigDecimal] = Try { BigDecimal(s) }
+  }
+
   implicit object DateTimeValueCodec extends FixValueCodec[DateTime] {
     private val formatter = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss").withZoneUTC()
     override def encode(a: DateTime): String = formatter.print(a)

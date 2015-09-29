@@ -49,7 +49,7 @@ object FixCodec {
   }
 
 
-  // TODO generalize with a codec that returns a B : Monoid
+  // TODO generalize with a codec that returns a B : Monoid ?
   implicit object ComposeFixCodec extends ComposeCodec[FixCodec] {
     /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
     override def prepend[A: StructKeyProvider, B](ca: FixCodec[A], cb: => FixCodec[Struct[B]]): FixCodec[Struct[A with B]] = new FixCodec[Struct[A with B]] {

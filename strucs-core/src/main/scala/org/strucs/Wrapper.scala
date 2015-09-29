@@ -9,7 +9,7 @@ import scala.language.experimental.macros
   * @tparam V type of the value
   */
 trait Wrapper[W, V] {
-  def make(v: V): Option[W]
+  def make(v: V): Option[W] // TODO use Try or Either ? Look at Spray or akka-http for error handling
   def value(w: W): V
 }
 
@@ -19,9 +19,9 @@ object Wrapper {
     val wsym = c.weakTypeOf[W].typeSymbol
     val vsym = c.weakTypeOf[V].typeSymbol
 
-    if (!wsym.isClass || !wsym.asClass.isCaseClass) c.abort(c.enclosingPosition, s"$wsym is not a case class")
+    if (!wsym.isClass || !wsym.asClass.isCaseClass) c.abort(c.enclosingPosition, s"$wsym is not a case class. Please define a Wrapper[$wsym, ?] manually")
     val fields = wsym.typeSignature.decls.toList.collect{ case x: TermSymbol if x.isVal && x.isCaseAccessor => x }
-    if (fields.size != 1) c.abort(c.enclosingPosition, s"$wsym must have exactly one field")
+    if (fields.size != 1) c.abort(c.enclosingPosition, s"$wsym must have exactly one field. Please define a Wrapper[$wsym, ?] manually")
     val field = fields.head.getter
 
     val expr = q"new org.strucs.CaseClassWrapper[$wsym, $vsym](new $wsym(_), _.$field)"
@@ -31,7 +31,21 @@ object Wrapper {
 
   /** Automatically creates a Wrapper for case classes */
   implicit def materializeWrapper[W, V]: Wrapper[W, V] = macro macroImpl[W, V]
+
+  // TODO can we get rid of this ? It simplifies declaration a Wrapper in companion objects, but it looks suspicious. Maybe wrapper could be a class ?
+  /** Creates a new Wrapper implementation */
+  def apply[W, V](pMake: V => Option[W], pValue: W => V): Wrapper[W, V] = new Wrapper[W, V] {
+    override def make(v: V): Option[W] = pMake(v)
+
+    override def value(w: W): V = pValue(w)
+  }
+
 }
+
+
+
+
+
 
 /** Implementation of a Wrapper for a case class */
 class CaseClassWrapper[W, V](_apply: V => W, _value: W => V) extends Wrapper[W, V] {

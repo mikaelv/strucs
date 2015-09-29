@@ -11,7 +11,7 @@ import org.strucs.Struct.Nil
 class EncoderSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
   "An EncodeCommaSeparated[Struct[Name with Age with City]]" should "be created with a macro" in {
-
+    // TODO add an enum
     val person = Struct.empty + Name("Bart") + Age(10) + City("Springfield")
 
     val encoder: EncodeCommaSeparated[Struct[Name with Age with City with Nil]] = ComposeCodec.makeCodec[EncodeCommaSeparated, Name with Age with City with Nil]
@@ -66,7 +66,6 @@ object EncoderSpec {
   implicit val cityEncoder: EncodeCommaSeparated[City] = new EncodeCommaSeparated[City] {
     override def encode(t: City): String = t.v.toString
   }
-
 
 
 }
