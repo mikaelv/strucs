@@ -34,12 +34,12 @@ class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
       (Side.Buy: Side) +
       OrderQty(100) +
       Symbol("CVS") +
-      OrdType("1") + // TODO enum
+      (OrdType.Market: OrdType) +
       TimeInForce("0") +
-      Rule80A("A") + // TODO enum
+      OrderCapacity.AgencySingleOrder +
       TransactTime(new DateTime(2009,3,23,15,40,29, DateTimeZone.UTC)) +
-      HandlInst("1") + // TODO enum
-      SecurityExchange("N")
+      (HandlInst.AutomatedPrivateNoBroker: HandlInst) +
+      SecurityExchange.NYSE
 
     val fixString =
       """8=FIX.4.2

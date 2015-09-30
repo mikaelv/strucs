@@ -2,10 +2,12 @@ By November
 - Json encoding using json4s
 - example using disjunction (Either)
 - Try or Either instead of Option for decoding, scalaz Validation ?
+- compare with Shapeless ?
+- abstract out ComposeCodec with Monoid ?
 
 Easy
+- example enum in EncoderSpec + deal with the case object types in the macro
 - documentation for encode/decode
-- finish enums in FixCodecSpec
 - Example with pre-defined Struct type (say OrderSingle), verifies that it does not compile / that it compiles regardless of the insertion order
 
 LONG-TERM - hard
