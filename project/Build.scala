@@ -24,7 +24,10 @@ object StrucsBuild extends Build {
   lazy val json: Project = Project(
     "strucs-json",
     file("strucs-json"),
-    settings = buildSettings
+    settings = buildSettings ++ Seq(
+      libraryDependencies += "io.argonaut" %% "argonaut" % "6.1",
+      libraryDependencies ++= scalaTest ++ joda
+    )
   ) dependsOn(core)
 
   lazy val fix: Project = Project(

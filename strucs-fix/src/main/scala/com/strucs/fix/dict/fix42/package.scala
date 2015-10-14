@@ -1,7 +1,6 @@
 package com.strucs.fix.dict
 
-import com.strucs.fix.FixCodec
-import com.strucs.fix.FixCodec.FixTagCodec
+import com.strucs.fix.{FixTagCodec, FixCodec}
 import org.joda.time.DateTime
 import org.strucs.Wrapper
 import org.strucs.Wrapper.materializeWrapper

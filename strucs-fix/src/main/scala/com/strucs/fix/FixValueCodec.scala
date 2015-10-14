@@ -26,7 +26,7 @@ object FixValueCodec {
 
 
   implicit object BigDecimalValueCodec extends FixValueCodec[BigDecimal] {
-    override def encode(a: BigDecimal): String = a.toString
+    override def encode(a: BigDecimal): String = a.toString()
 
     override def decode(s: String): Try[BigDecimal] = Try { BigDecimal(s) }
   }

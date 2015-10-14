@@ -1,9 +1,9 @@
 By November
-- Json encoding using json4s
-- example using disjunction (Either)
-- Try or Either instead of Option for decoding, scalaz Validation ?
-- compare with Shapeless ?
+- Json decoding
+- ValidationNel for decoding 
 - abstract out ComposeCodec with Monoid ?
+- example using disjunction (Either)
+- compare with Shapeless ?
 
 Easy
 - example enum in EncoderSpec + deal with the case object types in the macro

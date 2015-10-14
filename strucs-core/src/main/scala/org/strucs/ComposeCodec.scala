@@ -15,7 +15,7 @@ trait ComposeCodec[Codec[_]] {
   def zero: Codec[Struct[Nil]]
 
   /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
-  def prepend[A : StructKeyProvider, B](a: Codec[A], b: => Codec[Struct[B]]): Codec[Struct[A with B]]
+  def prepend[A : StructKeyProvider, B](ca: Codec[A], cb: => Codec[Struct[B]]): Codec[Struct[A with B]]
 }
 
 
@@ -28,7 +28,7 @@ object ComposeCodec {
 
   def macroImpl[Codec: c.WeakTypeTag, T : c.WeakTypeTag](c: blackbox.Context) = {
     import c.universe._
-    def info(msg: String) = c.info(c.enclosingPosition, "org.structs.ComposeCodec - "+msg, true)
+    def info(msg: String) = c.info(c.enclosingPosition, "org.strucs.ComposeCodec - "+msg, true)
 
     val nilSymbol = typeOf[Nil].typeSymbol
     def extractFieldsSymbols(mixin: Type, acc: List[Symbol] = List.empty): List[Symbol] = mixin match {
@@ -58,7 +58,7 @@ object ComposeCodec {
     val composed = symbols.foldLeft[Tree](q"comp.zero"){ case (tree, sbl) =>
       q"comp.prepend(${implicitCodec(sbl)}, $tree)"
     }
-    val codec = q"val comp = implicitly[ComposeCodec[$codecSymbol]]; $composed.asInstanceOf[$codecSymbol[Struct[${typeTag.tpe}]]]"
+    val codec = q"val comp = implicitly[org.strucs.ComposeCodec[$codecSymbol]]; $composed.asInstanceOf[$codecSymbol[Struct[${typeTag.tpe}]]]"
     info("codec = "+codec.toString)
     codec
   }
