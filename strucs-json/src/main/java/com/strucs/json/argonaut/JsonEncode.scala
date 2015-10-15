@@ -35,10 +35,10 @@ object JsonEncode {
       override def encode(a: Struct[A with B]): Json = {
         val bjson = cb.encode(a.shrink[B])
         val ajson = ca.encode(a.get[A])
-
-        val aAssoc = ajson.assoc.get.head   // TODO !!!! should not assume anything about ajson
-        aAssoc ->: bjson
-
+        ajson.assoc match {
+          case Some(assoc :: Nil) => assoc ->: bjson
+          case _ => sys.error(s"Cannot prepend $ajson to $bjson")
+        }
       }
     }
   }
