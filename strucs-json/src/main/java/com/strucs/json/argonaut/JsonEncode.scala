@@ -1,6 +1,6 @@
 package com.strucs.json.argonaut
 
-import argonaut.{Argonaut, JsonObject, Json}
+import argonaut.{EncodeJson, Argonaut, JsonObject, Json}
 import org.strucs.Struct.Nil
 import org.strucs.{Wrapper, Struct, StructKeyProvider, ComposeCodec}
 import Argonaut._
@@ -14,7 +14,7 @@ trait JsonEncode[A] {
 
 object JsonEncode {
   /** Build a field:value pair encoder */
-  def single[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: JsonValueEncode[V]): JsonEncode[W] = new JsonEncode[W] {
+  def single[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: EncodeJson[V]): JsonEncode[W] = new JsonEncode[W] {
     override def encode(w: W): Json = jSingleObject(fieldName, valueEncode.encode(wrapper.value(w)))
   }
 
@@ -43,10 +43,12 @@ object JsonEncode {
     }
   }
 
+  val nospacePreserveOrder = nospace.copy(preserveOrder = true)
+
   /** Pimp Struct with helpful methods */
   implicit class JsonEncodeOps[A](struct: Struct[A])(implicit encode: JsonEncode[Struct[A]]) {
     def toJson: Json = encode.encode(struct)
-    def toJsonString: String = toJson.nospaces
+    def toJsonString: String = nospacePreserveOrder.pretty(toJson)
   }
 
 }
