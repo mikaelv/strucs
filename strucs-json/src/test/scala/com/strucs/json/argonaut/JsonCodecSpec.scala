@@ -1,7 +1,8 @@
 package com.strucs.json.argonaut
 
+import argonaut.EncodeJson
 import com.strucs.json.argonaut.JsonCodecSpec._
-import com.strucs.json.argonaut.JsonEncode._
+import com.strucs.json.argonaut.EncodeJson._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.Struct
@@ -21,8 +22,8 @@ object JsonCodecSpec {
   case class Age(v: Int) extends AnyVal
   case class City(v: String) extends AnyVal
 
-  implicit val nameEncode: JsonEncode[Name] = JsonEncode.single[Name, String]("name")
-  implicit val ageEncode: JsonEncode[Age] = JsonEncode.single[Age, Int]("age")
-  implicit val cityEncode: JsonEncode[City] = JsonEncode.single[City, String]("city")
+  implicit val nameEncode: EncodeJson[Name] = EncodeJson.fromWrapper[Name, String]("name")
+  implicit val ageEncode: EncodeJson[Age] = EncodeJson.fromWrapper[Age, Int]("age")
+  implicit val cityEncode: EncodeJson[City] = EncodeJson.fromWrapper[City, String]("city")
 
 }

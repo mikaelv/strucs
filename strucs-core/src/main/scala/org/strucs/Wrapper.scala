@@ -33,6 +33,7 @@ object Wrapper {
   implicit def materializeWrapper[W, V]: Wrapper[W, V] = macro macroImpl[W, V]
 
   // TODO can we get rid of this ? It simplifies declaration a Wrapper in companion objects, but it looks suspicious. Maybe wrapper could be a class ?
+  // Basically I want to transform a function value into a method => google it !
   /** Creates a new Wrapper implementation */
   def apply[W, V](pMake: V => Option[W], pValue: W => V): Wrapper[W, V] = new Wrapper[W, V] {
     override def make(v: V): Option[W] = pMake(v)
