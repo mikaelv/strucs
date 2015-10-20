@@ -16,10 +16,40 @@ trait ComposeCodec[Codec[_]] {
 
   /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
   def prepend[A : StructKeyProvider, B](ca: Codec[A], cb: => Codec[Struct[B]]): Codec[Struct[A with B]]
+
+}
+
+trait Monoid[F] {
+  def zero: F
+  def append(f1: F, f2: F): F
 }
 
 
+
 object ComposeCodec {
+  /** Conversion from/to a function A=>T to/from an Encode[A] */ 
+  trait TransformEncode[Encode[_], T] {
+    def fromFunc[A](encode: A => T): Encode[A]
+    def toFunc[A](enc: Encode[A]): A => T
+  }
+
+  /** If we know how to compose the encoded values T (using Monoid[T]),
+    * we can define how to compose an Encoder to T
+    */
+  def makeComposeCodec[Enc[_], T](implicit tMonoid: Monoid[T], trans: TransformEncode[Enc, T]) = new ComposeCodec[Enc] {
+
+    /** Build a Codec for an empty Struct */
+    override def zero: Enc[Struct[Nil]] = trans.fromFunc {a: Struct[Nil] => tMonoid.zero}
+
+    /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
+    override def prepend[A: StructKeyProvider, B](ca: Enc[A], 
+                                                  cb: => Enc[Struct[B]]): Enc[Struct[A with B]] = trans.fromFunc { s: Struct[A with B] =>
+      val bencoded = trans.toFunc[Struct[B]](cb)(s.shrink[B])
+      val aencoded = trans.toFunc[A](ca)(s.get[A])
+      tMonoid.append(aencoded, bencoded)
+    }
+  }
+
 
   /** Make a Codec for a Struct[T], by calling the ComposeCodec for each constituent of T */
   def makeCodec[Codec[_], T]: Codec[Struct[T]] = macro macroImpl[Codec[_], T]

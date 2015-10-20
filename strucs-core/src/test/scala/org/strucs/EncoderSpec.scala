@@ -3,6 +3,7 @@ package org.strucs
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{Matchers, FlatSpec}
 import EncoderSpec._
+import org.strucs.ComposeCodec._
 import org.strucs.Struct.Nil
 
 /**
@@ -23,33 +24,31 @@ object EncoderSpec {
   /**
   * Dummy codec: outputs the content of each field, separated by commas
   */
-  trait EncodeCommaSeparated[T] {
-    def encode(t: T): String
+  trait EncodeCommaSeparated[A] {
+    def encode(a: A): String
   }
+
 
   object EncodeCommaSeparated {
 
-    implicit val composeEncode: ComposeCodec[EncodeCommaSeparated] = new ComposeCodec[EncodeCommaSeparated] {
+    implicit val monoid = new Monoid[String] {
+      override def zero: String = ""
 
-
-      /** Build a Codec for an empty Struct */
-      override def zero: EncodeCommaSeparated[Struct[Nil]] = new EncodeCommaSeparated[Struct[Nil]] {
-        override def encode(t: Struct[Nil]): String = ""
-      }
-      /** Build a Codec using a field codec ea and a codec eb for the rest of the Struct */
-      override def prepend[A: StructKeyProvider, B](ea: EncodeCommaSeparated[A],
-                                                    eb: => EncodeCommaSeparated[Struct[B]]): EncodeCommaSeparated[Struct[A with B]] = new EncodeCommaSeparated[Struct[A with B]] {
-        override def encode(t: Struct[A with B]): String = {
-          val encodea = ea.encode(t.get[A])
-          val encodeb = eb.encode(t.shrink[B])
-          if (encodeb != zero.encode(Struct.empty))
-            encodea + ", " + encodeb
-          else
-            encodea
-
-        }
-      }
+      override def append(f1: String, f2: String): String =
+        if (f1 == "") f2
+        else if (f2 == "") f1
+        else f1 + ", " + f2
     }
+
+    implicit val trans = new TransformEncode[EncodeCommaSeparated, String] {
+      override def fromFunc[A](_encode: (A) => String) = new EncodeCommaSeparated[A] {
+        override def encode(a: A): String = _encode(a)
+      }
+
+      override def toFunc[A](enc: EncodeCommaSeparated[A]) = enc.encode
+    }
+    implicit val composeEncode: ComposeCodec[EncodeCommaSeparated] = ComposeCodec.makeComposeCodec[EncodeCommaSeparated, String]
+
   }
 
 
@@ -66,6 +65,4 @@ object EncoderSpec {
   implicit val cityEncoder: EncodeCommaSeparated[City] = new EncodeCommaSeparated[City] {
     override def encode(t: City): String = t.v.toString
   }
-
-
 }
