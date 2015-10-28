@@ -1,13 +1,13 @@
 package com.strucs.json.argonaut
 
-import argonaut.{EncodeJson, Argonaut, JsonObject, Json}
+import argonaut._
 import org.strucs.Struct.Nil
 import org.strucs.{Wrapper, Struct, StructKeyProvider, ComposeCodec}
 import Argonaut._
 import scala.language.experimental.macros
 
 /** Encodes a Struct using Argonaut's EncodeJson typeclass */
-object EncodeJson {
+object StrucsEncodeJson {
   /** Build a field:value pair encoder */
   implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: EncodeJson[V]): EncodeJson[W] = new EncodeJson[W] {
     override def encode(w: W): Json = jSingleObject(fieldName, valueEncode.encode(wrapper.value(w)))
@@ -47,4 +47,35 @@ object EncodeJson {
     def toJsonString: String = nospacePreserveOrder.pretty(toJson)
   }
 
+}
+
+object StrucsDecodeJson {
+  implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueDecode: DecodeJson[V]): DecodeJson[W] = new DecodeJson[W] {
+    override def decode(c: HCursor): DecodeResult[W] = {
+      // TODO get the fieldName from the cursor and decode it using valueDecode
+      valueDecode.decode(c).map(wrapper.make(_).get) // TODO manage error
+    }
+  }
+
+  implicit def makeDecodeJson[T]: DecodeJson[Struct[T]] = macro ComposeCodec.macroImpl[DecodeJson[_], T]
+
+  implicit object ComposeDecodeJson extends ComposeCodec[DecodeJson] {
+    /** Build a Codec for an empty Struct */
+    override def zero: DecodeJson[Struct[Nil]] = new DecodeJson[Struct[Nil]] {
+      override def decode(c: HCursor): DecodeResult[Struct[Nil]] = DecodeResult.ok(Struct.empty)
+
+    }
+
+    /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
+    override def prepend[A: StructKeyProvider, B](ca: DecodeJson[A], cb: => DecodeJson[Struct[B]]): DecodeJson[Struct[A with B]] = new DecodeJson[Struct[A with B]] {
+      override def decode(c: HCursor): DecodeResult[Struct[A with B]] = {
+        for {
+          structb <- cb.decode(c)
+          a <- ca.decode(c)
+
+        } yield structb.add[A](a)
+      }
+
+    }
+  }
 }
