@@ -8,6 +8,8 @@ import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.Struct
 
+import scalaz.\/-
+
 /**
  */
 class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals {
@@ -21,8 +23,8 @@ class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals
   "a DecodeJson" should "decode a json string into a Person" in {
     val json = """{"name":"Albert","age":76,"city":"Princeton"}"""
     import argonaut._, Argonaut._
-    implicit val decodePerson = implicitly[DecodeJson[Person]]
-    json.decode[Person] shouldBe DecodeResult.ok(person)
+    val dperson = json.decode[Person]
+    dperson shouldBe \/-(person)
   }
 
 }

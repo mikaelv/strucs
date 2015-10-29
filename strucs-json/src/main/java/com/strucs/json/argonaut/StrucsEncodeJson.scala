@@ -52,8 +52,7 @@ object StrucsEncodeJson {
 object StrucsDecodeJson {
   implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueDecode: DecodeJson[V]): DecodeJson[W] = new DecodeJson[W] {
     override def decode(c: HCursor): DecodeResult[W] = {
-      // TODO get the fieldName from the cursor and decode it using valueDecode
-      valueDecode.decode(c).map(wrapper.make(_).get) // TODO manage error
+      c.get(fieldName)(valueDecode).map(wrapper.make(_).get) // TODO manage error
     }
   }
 
@@ -72,7 +71,6 @@ object StrucsDecodeJson {
         for {
           structb <- cb.decode(c)
           a <- ca.decode(c)
-
         } yield structb.add[A](a)
       }
 
