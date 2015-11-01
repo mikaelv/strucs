@@ -14,7 +14,7 @@ import scalaz.{-\/, \/-}
 /**
  */
 class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals {
-  val person = Struct.empty + Name("Albert") + Age(76) + City("Princeton") + Male
+  val person = Struct.empty + Name("Albert") + Age(76) + City("Princeton") + (Male: Gender)
   
   "an EncodeJson" should "encode a Person" in {
     val json = person.toJsonString
@@ -49,9 +49,8 @@ object CodecJsonSpec {
 
   sealed abstract class Gender(val v: String)
   object Gender {
-    // TODO slightly worse than case objects, but better for type: missing toString, compilation error gives anon when pattern matching
-    val Male = new Gender("M") {}
-    val Female = new Gender("F") {}
+    case object Male extends Gender("M")
+    case object Female extends Gender("F")
 
     val all = Seq(Male, Female)
     def make(value: String): Option[Gender] = all.find(_.v == value)
