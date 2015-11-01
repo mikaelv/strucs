@@ -8,8 +8,8 @@ import com.strucs.json.argonaut.StrucsDecodeJson._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.{Wrapper, Struct}
-
-import scalaz.\/-
+import argonaut._, Argonaut._
+import scalaz.{-\/, \/-}
 
 /**
  */
@@ -23,11 +23,21 @@ class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals
 
   "a DecodeJson" should "decode a json string into a Person" in {
     val json = """{"name":"Albert","age":76,"city":"Princeton","gender":"M"}"""
-    import argonaut._, Argonaut._
     val dperson = json.decode[Person]
     dperson shouldBe \/-(person)
   }
 
+  "a DecodeJson" should "return an error when a field is missing" in {
+    val json = """{"name":"Albert","age":76,"gender":"M"}"""
+    val dperson = json.decodeEither[Person]
+    dperson should === (-\/("Attempt to decode value on failed cursor.: [*.--\\(city)]"))
+  }
+
+  "a DecodeJson" should "return an error when an enumeration has an invalid value" in {
+    val json = """{"name":"Albert","age":76,"city":"Princeton","gender":"Z"}"""
+    val dperson = json.decodeEither[Person]
+    dperson should === (-\/("Invalid value Z: [--\\(gender)]"))
+  }
 }
 
 object CodecJsonSpec {
@@ -39,7 +49,7 @@ object CodecJsonSpec {
 
   sealed abstract class Gender(val v: String)
   object Gender {
-    // TODO is this better than case objects ? What about equals, hashcode, pattern matching ?
+    // TODO slightly worse than case objects, but better for type: missing toString, compilation error gives anon when pattern matching
     val Male = new Gender("M") {}
     val Female = new Gender("F") {}
 
@@ -47,7 +57,7 @@ object CodecJsonSpec {
     def make(value: String): Option[Gender] = all.find(_.v == value)
   }
 
-
+  // TODO declare as Codec
   implicit val nameEncode: EncodeJson[Name] = StrucsEncodeJson.fromWrapper[Name, String]("name")
   implicit val nameDecode: DecodeJson[Name] = StrucsDecodeJson.fromWrapper[Name, String]("name")
 

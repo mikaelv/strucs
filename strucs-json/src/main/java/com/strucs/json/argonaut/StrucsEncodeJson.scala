@@ -50,9 +50,19 @@ object StrucsEncodeJson {
 }
 
 object StrucsDecodeJson {
+  /** Make a DecodeJson[W] for a field fieldName of type W, W being a Wrapper of V   */
   implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueDecode: DecodeJson[V]): DecodeJson[W] = new DecodeJson[W] {
     override def decode(c: HCursor): DecodeResult[W] = {
-      c.get(fieldName)(valueDecode).map(wrapper.make(_).get) // TODO manage error
+      val wrapperDecode = valueDecode.flatMap { value =>
+        new DecodeJson[W] {
+          override def decode(c: HCursor): DecodeResult[W] = wrapper.make(value) match {
+            case None => DecodeResult.fail("Invalid value " + value, c.history)
+            case Some(w) => DecodeResult.ok(w)
+          }
+        }
+      }
+
+      c.get(fieldName)(wrapperDecode)
     }
   }
 
