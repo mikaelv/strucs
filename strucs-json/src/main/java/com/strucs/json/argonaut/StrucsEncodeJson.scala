@@ -9,7 +9,7 @@ import scala.language.experimental.macros
 /** Encodes a Struct using Argonaut's EncodeJson typeclass */
 object StrucsEncodeJson {
   /** Build a field:value pair encoder */
-  implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: EncodeJson[V]): EncodeJson[W] = new EncodeJson[W] {
+  def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: EncodeJson[V]): EncodeJson[W] = new EncodeJson[W] {
     override def encode(w: W): Json = jSingleObject(fieldName, valueEncode.encode(wrapper.value(w)))
   }
 
@@ -50,8 +50,8 @@ object StrucsEncodeJson {
 }
 
 object StrucsDecodeJson {
-  /** Make a DecodeJson[W] for a field fieldName of type W, W being a Wrapper of V   */
-  implicit def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueDecode: DecodeJson[V]): DecodeJson[W] = new DecodeJson[W] {
+  /** Build a field:value pair decoder */
+  def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueDecode: DecodeJson[V]): DecodeJson[W] = new DecodeJson[W] {
     override def decode(c: HCursor): DecodeResult[W] = {
       val wrapperDecode = valueDecode.flatMap { value =>
         new DecodeJson[W] {
@@ -86,4 +86,10 @@ object StrucsDecodeJson {
 
     }
   }
+}
+
+/** Encode and Decode a Struct using Argonaut's CodecJson */
+object StrucsCodecJson {
+  def fromWrapper[W, V](fieldName: String)(implicit wrapper: Wrapper[W, V], valueEncode: EncodeJson[V], valueDecode: DecodeJson[V]): CodecJson[W] = CodecJson.derived[W](
+    StrucsEncodeJson.fromWrapper[W, V](fieldName), StrucsDecodeJson.fromWrapper[W, V](fieldName))
 }

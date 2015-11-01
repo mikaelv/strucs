@@ -57,19 +57,16 @@ object CodecJsonSpec {
     def make(value: String): Option[Gender] = all.find(_.v == value)
   }
 
-  // TODO declare as Codec
-  implicit val nameEncode: EncodeJson[Name] = StrucsEncodeJson.fromWrapper[Name, String]("name")
-  implicit val nameDecode: DecodeJson[Name] = StrucsDecodeJson.fromWrapper[Name, String]("name")
+  // Defines how to encode/decode Name to/from a Struct
+  implicit val nameCodec: CodecJson[Name] = StrucsCodecJson.fromWrapper[Name, String]("name")
 
-  implicit val ageEncode: EncodeJson[Age] = StrucsEncodeJson.fromWrapper[Age, Int]("age")
-  implicit val ageDecode: DecodeJson[Age] = StrucsDecodeJson.fromWrapper[Age, Int]("age")
-
+  implicit val ageCodec: CodecJson[Age] = StrucsCodecJson.fromWrapper[Age, Int]("age")
+  // We can also declare encode and decode separately
   implicit val cityEncode: EncodeJson[City] = StrucsEncodeJson.fromWrapper[City, String]("city")
   implicit val cityDecode: DecodeJson[City] = StrucsDecodeJson.fromWrapper[City, String]("city")
 
   implicit val genderWrapper: Wrapper[Gender, String] = Wrapper(Gender.make, _.v)
-  implicit val genderEncode: EncodeJson[Gender] = StrucsEncodeJson.fromWrapper[Gender, String]("gender")
-  implicit val genderDecode: DecodeJson[Gender] = StrucsDecodeJson.fromWrapper[Gender, String]("gender")
+  implicit val genderCodec: CodecJson[Gender] = StrucsCodecJson.fromWrapper[Gender, String]("gender")
 
 
 }

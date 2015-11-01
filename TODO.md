@@ -1,6 +1,6 @@
 By November
-- ValidationNel for decoding 
 - Json decoding of nested structures
+- Json example with adding common bits for mongo
 - use Monoid for Json and Fix
 - example using disjunction (Either)
 - compare with Shapeless ?
