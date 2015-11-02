@@ -1,15 +1,16 @@
 package com.strucs.json.argonaut
 
 import argonaut.Argonaut._
-import argonaut.{Json, CodecJson, DecodeJson, EncodeJson}
+import argonaut.{CodecJson, DecodeJson, EncodeJson}
 import com.strucs.json.argonaut.CodecJsonSpec.Gender.Male
 import com.strucs.json.argonaut.CodecJsonSpec._
-import com.strucs.json.argonaut.StrucsEncodeJson._
 import com.strucs.json.argonaut.StrucsDecodeJson._
+import com.strucs.json.argonaut.StrucsEncodeJson._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.Struct.Nil
-import org.strucs.{CaseClassWrapper, Wrapper, Struct}
+import org.strucs.{Struct, Wrapper}
+
 import scalaz.{-\/, \/-}
 
 /**
@@ -98,8 +99,5 @@ object CodecJsonSpec {
 
   implicit val line1Codec: CodecJson[Line1] = StrucsCodecJson.fromWrapper[Line1, String]("line1")
   implicit val postCodeCodec: CodecJson[PostCode] = StrucsCodecJson.fromWrapper[PostCode, String]("postCode")
-
-  // TODO change the Wrapper macro to accomodate wrappers of Struct
-  implicit val addressWrapper: Wrapper[Address, AddressStruct] = new CaseClassWrapper(Address.apply, _.v)
   implicit val addressCodec: CodecJson[Address] = StrucsCodecJson.fromWrapper[Address, AddressStruct]("address")
 }

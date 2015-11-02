@@ -17,14 +17,14 @@ object Wrapper {
   def macroImpl[W: c.WeakTypeTag, V : c.WeakTypeTag](c: blackbox.Context) = {
     import c.universe._
     val wsym = c.weakTypeOf[W].typeSymbol
-    val vsym = c.weakTypeOf[V].typeSymbol
+    val vtype = c.weakTypeOf[V]
 
     if (!wsym.isClass || !wsym.asClass.isCaseClass) c.abort(c.enclosingPosition, s"$wsym is not a case class. Please define a Wrapper[$wsym, ?] manually")
     val fields = wsym.typeSignature.decls.toList.collect{ case x: TermSymbol if x.isVal && x.isCaseAccessor => x }
     if (fields.size != 1) c.abort(c.enclosingPosition, s"$wsym must have exactly one field. Please define a Wrapper[$wsym, ?] manually")
     val field = fields.head.getter
 
-    val expr = q"new org.strucs.CaseClassWrapper[$wsym, $vsym](new $wsym(_), _.$field)"
+    val expr = q"new org.strucs.CaseClassWrapper[$wsym, $vtype](new $wsym(_), _.$field)"
     //c.info(c.enclosingPosition, expr.toString, true)
     expr
   }
