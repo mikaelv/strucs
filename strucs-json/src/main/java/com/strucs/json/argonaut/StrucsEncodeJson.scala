@@ -26,9 +26,9 @@ object StrucsEncodeJson {
 
     /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
     override def prepend[A: StructKeyProvider, B](ca: EncodeJson[A], cb: => EncodeJson[Struct[B]]): EncodeJson[Struct[A with B]] = new EncodeJson[Struct[A with B]] {
-      override def encode(a: Struct[A with B]): Json = {
-        val bjson = cb.encode(a.shrink[B])
-        val ajson = ca.encode(a.get[A])
+      override def encode(struct: Struct[A with B]): Json = {
+        val bjson = cb.encode(struct.shrink[B])
+        val ajson = ca.encode(struct.get[A])
         ajson.assoc match {
           case Some(assoc :: Nil) => assoc ->: bjson
           case _ => sys.error(s"Cannot prepend $ajson to $bjson")

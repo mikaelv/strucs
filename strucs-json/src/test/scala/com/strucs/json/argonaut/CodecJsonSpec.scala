@@ -1,6 +1,7 @@
 package com.strucs.json.argonaut
 
-import argonaut.{DecodeJson, EncodeJson}
+import argonaut.Argonaut._
+import argonaut.{Json, CodecJson, DecodeJson, EncodeJson}
 import com.strucs.json.argonaut.CodecJsonSpec.Gender.Male
 import com.strucs.json.argonaut.CodecJsonSpec._
 import com.strucs.json.argonaut.StrucsEncodeJson._
@@ -8,14 +9,16 @@ import com.strucs.json.argonaut.StrucsDecodeJson._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import org.strucs.Struct.Nil
-import org.strucs.{Wrapper, Struct}
-import argonaut._, Argonaut._
+import org.strucs.{CaseClassWrapper, Wrapper, Struct}
 import scalaz.{-\/, \/-}
 
 /**
  */
 class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals {
   val person = Struct.empty + Name("Albert") + Age(76) + City("Princeton") + (Male: Gender)
+
+  import argonaut._
+  import Argonaut._
   
   "an EncodeJson" should "encode a Person" in {
     val json = person.toJsonString
@@ -41,19 +44,28 @@ class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals
   }
 
   "an EncodeJson" should "encode a Person with a nested Address" in {
-    val address = Struct.empty + Line1("52 Upper Street") + PostCode("N1 0QH")
+    val address = Address(Struct.empty + Line1("52 Upper Street") + PostCode("N1 0QH"))
     val personAdr = person + address
-    // TODO macro should declare implicitly[EncodeJson[Struct[...]]
-    implicitly[EncodeJson[Struct[Nil with Line1 with PostCode]]].encode(address)
     val json = personAdr.toJsonString
 
     json should === ("""{"name":"Albert","age":76,"city":"Princeton","gender":"M","address":{"line1":"52 Upper Street","postCode":"N1 0QH"}}""")
+  }
+
+  "a DecodeJson" should "decode a Person with a nested Address" in {
+    val json = """{"address":{"line1":"52 Upper Street","postCode":"N1 0QH"}, "name":"Albert","age":76,"city":"Princeton","gender":"M"}"""
+    val dperson = json.decodeEither[Struct[Name with Age with City with Gender with Address]]
+
+    val address = Address(Struct.empty + Line1("52 Upper Street") + PostCode("N1 0QH"))
+    val expected = person + address
+
+    dperson shouldBe \/-(expected)
   }
 }
 
 object CodecJsonSpec {
   type Person = Struct[Name with Age with City with Gender]
-  type Address = Struct[Line1 with PostCode]
+  type AddressStruct = Struct[Line1 with PostCode with Nil]
+  case class Address(v: AddressStruct)
 
   case class Name(v: String) extends AnyVal
   case class Age(v: Int) extends AnyVal
@@ -87,4 +99,7 @@ object CodecJsonSpec {
   implicit val line1Codec: CodecJson[Line1] = StrucsCodecJson.fromWrapper[Line1, String]("line1")
   implicit val postCodeCodec: CodecJson[PostCode] = StrucsCodecJson.fromWrapper[PostCode, String]("postCode")
 
+  // TODO change the Wrapper macro to accomodate wrappers of Struct
+  implicit val addressWrapper: Wrapper[Address, AddressStruct] = new CaseClassWrapper(Address.apply, _.v)
+  implicit val addressCodec: CodecJson[Address] = StrucsCodecJson.fromWrapper[Address, AddressStruct]("address")
 }
