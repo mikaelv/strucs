@@ -63,11 +63,12 @@ object ComposeCodec {
     val nilSymbol = typeOf[Nil].typeSymbol
     def extractFieldsSymbols(mixin: Type, acc: List[Symbol] = List.empty): List[Symbol] = mixin match {
       case RefinedType(types, _) => types.foldLeft(acc){ (symbols, tpe) => extractFieldsSymbols(tpe, symbols) }
+      // For declarations like implicitly[EncodeZZZ[Struct[myStruct.type]]
       case TypeRef(pre, sym, args) => extractFieldsSymbols(sym.typeSignatureIn(pre), acc)
       case t if t.typeSymbol == nilSymbol => acc
       case _ =>
         val v = mixin.typeSymbol +: acc
-        //info("extracted symbol: "+mixin)
+        info("extracted symbol: "+mixin.typeSymbol + "[" + mixin.typeParams + "]")
         v
     }
 
