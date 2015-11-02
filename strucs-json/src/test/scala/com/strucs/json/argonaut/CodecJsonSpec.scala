@@ -45,9 +45,9 @@ class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals
     val personAdr = person + address
     // TODO macro should declare implicitly[EncodeJson[Struct[...]]
     implicitly[EncodeJson[Struct[Nil with Line1 with PostCode]]].encode(address)
-    //val json = personAdr.toJsonString
+    val json = personAdr.toJsonString
 
-    //json should === ("""{"name":"Albert","age":76,"city":"Princeton","gender":"M","address":{"line1":"52 Upper Street","postCode":"N1 0QH"}}""")
+    json should === ("""{"name":"Albert","age":76,"city":"Princeton","gender":"M","address":{"line1":"52 Upper Street","postCode":"N1 0QH"}}""")
   }
 }
 
