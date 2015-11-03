@@ -2,6 +2,7 @@ package strucs
 
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
+import strucs.Struct.Nil
 
 import scala.reflect.runtime.universe._
 
@@ -23,7 +24,7 @@ class StructSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
   "A Struct" should "add new fields" in {
     val s = baseStruct
-    assert(typeOf[s.type] <:< typeOf[Struct[Name with Age]], "s conforms to Struct[A with B]")
+    implicitly[s.type <:< Struct[Name with Age with Nil]]
   }
 
   it should "get an added field" in {
