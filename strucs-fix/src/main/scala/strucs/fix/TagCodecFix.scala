@@ -1,6 +1,5 @@
 package strucs.fix
 
-import strucs.fix.dict.fix42.MsgType
 import strucs.Wrapper
 import strucs.fix.dict.fix42.{MsgType, BeginString}
 
@@ -8,7 +7,7 @@ import scala.util.{Failure, Success, Try}
 
 /** Encodes a single tag / value pair.
   * Uses the value codec and the wrapper to encode/decode the value */
-class FixTagCodec[W, V](val tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: FixValueCodec[V]) extends FixCodec[W] {
+class TagCodecFix[W, V](val tag: Int)(implicit wrapper: Wrapper[W, V], valueCodec: ValueCodecFix[V]) extends CodecFix[W] {
   override def encode(a: W): FixTagValue = FixTagValue(tag, valueCodec.encode(wrapper.value(a)))
 
   /** @param fix is always a FixGroup when called from outside */

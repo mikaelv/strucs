@@ -12,7 +12,7 @@ import scala.util.{Failure, Success, Try}
 /**
  * typeclass. Defines how a Struct can be encoded/decoded to/from FIX.
  */
-trait FixCodec[A] {
+trait CodecFix[A] {
   def encode(a: A): FixElement
   def decode(fix: FixElement): Try[A]
 }
@@ -20,17 +20,17 @@ trait FixCodec[A] {
 
 
 
-object FixCodec {
+object CodecFix {
   /** Automatically create a FixCodec for any Struct[A]
     * @tparam T mixin, each type M in the mixin must have an implicit FixCodec[M] in scope */
-  implicit def makeFixCodec[T]: FixCodec[Struct[T]] = macro ComposeCodec.macroImpl[FixCodec[_], T]
+  implicit def makeFixCodec[T]: CodecFix[Struct[T]] = macro ComposeCodec.macroImpl[CodecFix[_], T]
 
 
 
   // TODO generalize with a codec that returns a B : Monoid ?
-  implicit object ComposeFixCodec extends ComposeCodec[FixCodec] {
+  implicit object ComposeFixCodec extends ComposeCodec[CodecFix] {
     /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
-    override def prepend[A: StructKeyProvider, B](ca: FixCodec[A], cb: => FixCodec[Struct[B]]): FixCodec[Struct[A with B]] = new FixCodec[Struct[A with B]] {
+    override def prepend[A: StructKeyProvider, B](ca: CodecFix[A], cb: => CodecFix[Struct[B]]): CodecFix[Struct[A with B]] = new CodecFix[Struct[A with B]] {
       override def encode(a: Struct[A with B]): FixElement = {
         val bfix = cb.encode(a.shrink[B])
         val afix = ca.encode(a.get[A])
@@ -47,7 +47,7 @@ object FixCodec {
     }
 
     /** Build a Codec for an empty Struct */
-    override def zero: FixCodec[Struct[Nil]] = new FixCodec[Struct[Nil]] {
+    override def zero: CodecFix[Struct[Nil]] = new CodecFix[Struct[Nil]] {
       override def encode(a: Struct[Nil]): FixElement = FixGroup.empty
 
       override def decode(fix: FixElement): Try[Struct[Nil]] = Success(Struct.empty)
@@ -57,7 +57,7 @@ object FixCodec {
 
 
   /** Pimp Struct with helpful methods */
-  implicit class FixEncodeOps[A <: MsgType with BeginString](struct: Struct[A])(implicit codec: FixCodec[Struct[A]]) {
+  implicit class EncodeFixOps[A <: MsgType with BeginString](struct: Struct[A])(implicit codec: CodecFix[Struct[A]]) {
     def toFixMessage: FixMessage = {
       FixMessage(
         BeginString.codec.encode(struct.get[BeginString]),
@@ -68,8 +68,8 @@ object FixCodec {
     def toFixMessageString: String = toFixMessage.toFixString
   }
 
-  implicit class FixDecodeOps(fixString: String) {
-    def toStruct[A](implicit codec: FixCodec[Struct[A]]): Try[Struct[A]] = {
+  implicit class DecodeFixOps(fixString: String) {
+    def toStruct[A](implicit codec: CodecFix[Struct[A]]): Try[Struct[A]] = {
       for {
         fixMsg <- FixMessage.decode(fixString)
         struct <- codec.decode(fixMsg)

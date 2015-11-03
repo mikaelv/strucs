@@ -4,7 +4,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import strucs.Struct
-import strucs.fix.FixCodec._
+import strucs.fix.CodecFix._
 import strucs.fix.FixGroup.SOH
 import strucs.fix.dict.fix42._
 
@@ -14,14 +14,14 @@ import scala.util.Success
 /**
  * More examples at http://fiximulator.org/FIXimulator_Thesis.pdf
  */
-class FixCodecSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
+class CodecFixSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
   /** It's easier to use \n or ; for separating key/value pairs in testcases. */
   private implicit class SemicolonToSOH(s: String) {
     def toSOH: String = s.stripMargin.replaceAll("[;\n]", SOH)
   }
 
-  "a FixCodec" should "encode/decode a New Order Single" in {
+  "a CodecFix" should "encode/decode a New Order Single" in {
     val struct = Struct.empty +
       BeginString.Fix42 +
       MsgType.OrderSingle +

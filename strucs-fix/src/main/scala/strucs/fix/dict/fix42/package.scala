@@ -1,11 +1,10 @@
 package strucs.fix.dict
 
-import strucs.fix.FixTagCodec
+import strucs.fix.{CodecFix, TagCodecFix}
 import org.joda.time.DateTime
 import strucs.Wrapper
 import Wrapper.materializeWrapper
 import strucs.Wrapper
-import strucs.fix.{FixTagCodec, FixCodec}
 
 /**
  * Tag names for FIX 4.2
@@ -16,30 +15,30 @@ package object fix42 {
   object BeginString {
     val Fix42 = BeginString("FIX.4.2")
     val Tag = 8
-    implicit val codec = new FixTagCodec[BeginString, String](Tag)
+    implicit val codec = new TagCodecFix[BeginString, String](Tag)
 
     val Fix42TV = codec.encode(Fix42)
   }
 
   case class BodyLength(v: Int) extends AnyVal
   object BodyLength {
-    implicit val codec: FixCodec[BodyLength] = new FixTagCodec[BodyLength, Int](9)
+    implicit val codec: CodecFix[BodyLength] = new TagCodecFix[BodyLength, Int](9)
   }
 
   case class CheckSum(v: Int) extends AnyVal
   object CheckSum {
-    implicit val codec: FixCodec[CheckSum] = new FixTagCodec[CheckSum, Int](10)
+    implicit val codec: CodecFix[CheckSum] = new TagCodecFix[CheckSum, Int](10)
   }
 
   case class ClOrdId(v: String) extends AnyVal
   object ClOrdId {
-    implicit val codec: FixCodec[ClOrdId] = new FixTagCodec[ClOrdId, String](11)
+    implicit val codec: CodecFix[ClOrdId] = new TagCodecFix[ClOrdId, String](11)
   }
 
 
   case class MsgSeqNum(v: String) extends AnyVal
   object MsgSeqNum {
-    implicit val codec: FixCodec[MsgSeqNum] = new FixTagCodec[MsgSeqNum, String](34)
+    implicit val codec: CodecFix[MsgSeqNum] = new TagCodecFix[MsgSeqNum, String](34)
   }
 
   case class MsgType(v: String) extends AnyVal
@@ -47,7 +46,7 @@ package object fix42 {
     val OrderSingle = MsgType("D")
     val Logon = MsgType("A")
     val Tag = 35
-    implicit val codec = new FixTagCodec[MsgType, String](Tag)
+    implicit val codec = new TagCodecFix[MsgType, String](Tag)
 
     val OrderSingleTV = codec.encode(OrderSingle)
     val LogonTV = codec.encode(Logon)
@@ -55,7 +54,7 @@ package object fix42 {
 
   case class OrderQty(v: BigDecimal) extends AnyVal
   object OrderQty {
-    implicit val codec: FixCodec[OrderQty] = new FixTagCodec[OrderQty, BigDecimal](38)
+    implicit val codec: CodecFix[OrderQty] = new TagCodecFix[OrderQty, BigDecimal](38)
   }
 
 
@@ -63,12 +62,12 @@ package object fix42 {
 
   case class SenderCompID(v: String) extends AnyVal
   object SenderCompID {
-    implicit val codec: FixCodec[SenderCompID] = new FixTagCodec[SenderCompID, String](49)
+    implicit val codec: CodecFix[SenderCompID] = new TagCodecFix[SenderCompID, String](49)
   }
 
   case class SendingTime(v: DateTime) extends AnyVal
   object SendingTime {
-    implicit val codec: FixCodec[SendingTime] = new FixTagCodec[SendingTime, DateTime](52)
+    implicit val codec: CodecFix[SendingTime] = new TagCodecFix[SendingTime, DateTime](52)
   }
 
 
@@ -79,7 +78,7 @@ package object fix42 {
     val AgencySingleOrder = OrderCapacity("A")
     val ShortExampleTransaction = OrderCapacity("B")
 
-    implicit val codec: FixCodec[OrderCapacity] = new FixTagCodec[OrderCapacity, String](47)
+    implicit val codec: CodecFix[OrderCapacity] = new TagCodecFix[OrderCapacity, String](47)
   }
 
   /** Example of a more strict enumeration.
@@ -97,7 +96,7 @@ package object fix42 {
 
     // decoding a 54=X if X is not declared in 'all' would fail
     implicit val wrapper: Wrapper[OrdType, String] = Wrapper(make, _.v)
-    implicit val codec: FixCodec[OrdType] = new FixTagCodec[OrdType, String](40)
+    implicit val codec: CodecFix[OrdType] = new TagCodecFix[OrdType, String](40)
   }
 
 
@@ -112,7 +111,7 @@ package object fix42 {
 
     // decoding a 54=X if X is not declared in 'all' would fail
     implicit val wrapper: Wrapper[Side, String] = Wrapper(make, _.v)
-    implicit val codec: FixCodec[Side] = new FixTagCodec[Side, String](54)
+    implicit val codec: CodecFix[Side] = new TagCodecFix[Side, String](54)
   }
 
   sealed abstract class HandlInst(val v: String)
@@ -125,40 +124,40 @@ package object fix42 {
     def make(fixValue: String): Option[HandlInst] = all.find(_.v == fixValue)
 
     implicit val wrapper: Wrapper[HandlInst, String] = Wrapper(make, _.v)
-    implicit val codec: FixCodec[HandlInst] = new FixTagCodec[HandlInst, String](21)
+    implicit val codec: CodecFix[HandlInst] = new TagCodecFix[HandlInst, String](21)
   }
 
 
   case class Symbol(v: String) extends AnyVal
   object Symbol {
-    implicit val codec: FixCodec[Symbol] = new FixTagCodec[Symbol, String](55)
+    implicit val codec: CodecFix[Symbol] = new TagCodecFix[Symbol, String](55)
   }
 
   case class TargetCompID(v: String) extends AnyVal
   object TargetCompID {
-    implicit val codec: FixCodec[TargetCompID] = new FixTagCodec[TargetCompID, String](56)
+    implicit val codec: CodecFix[TargetCompID] = new TagCodecFix[TargetCompID, String](56)
   }
 
   case class TimeInForce(v: String) extends AnyVal
   object TimeInForce {
-    implicit val codec: FixCodec[TimeInForce] = new FixTagCodec[TimeInForce, String](59)
+    implicit val codec: CodecFix[TimeInForce] = new TagCodecFix[TimeInForce, String](59)
   }
 
   case class TransactTime(v: DateTime) extends AnyVal
   object TransactTime {
-    implicit val codec: FixCodec[TransactTime] = new FixTagCodec[TransactTime, DateTime](60)
+    implicit val codec: CodecFix[TransactTime] = new TagCodecFix[TransactTime, DateTime](60)
   }
 
 
   case class OnBehalfOfCompID(v: String) extends AnyVal
   object OnBehalfOfCompID {
-    implicit val codec: FixCodec[OnBehalfOfCompID] = new FixTagCodec[OnBehalfOfCompID, String](115)
+    implicit val codec: CodecFix[OnBehalfOfCompID] = new TagCodecFix[OnBehalfOfCompID, String](115)
   }
 
   case class SecurityExchange(v: String) extends AnyVal
   object SecurityExchange {
     val NYSE = SecurityExchange("N")
-    implicit val codec: FixCodec[SecurityExchange] = new FixTagCodec[SecurityExchange, String](207)
+    implicit val codec: CodecFix[SecurityExchange] = new TagCodecFix[SecurityExchange, String](207)
   }
 
 

@@ -6,32 +6,32 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatterBuilder, DateTimeF
 import scala.util.{Success, Try}
 
 /** typeclass. defines how basic types (String, Int, ...) can be encoded/decoded to/from FIX */
-trait FixValueCodec[A] {
+trait ValueCodecFix[A] {
   def encode(a: A): String
   def decode(s: String): Try[A]
 }
 
-object FixValueCodec {
-  implicit object StringValueCodec extends FixValueCodec[String] {
+object ValueCodecFix {
+  implicit object StringValueCodec extends ValueCodecFix[String] {
     override def encode(a: String): String = a
 
     override def decode(s: String): Try[String] = Success(s)
   }
 
-  implicit object IntValueCodec extends FixValueCodec[Int] {
+  implicit object IntValueCodec extends ValueCodecFix[Int] {
     override def encode(a: Int): String = a.toString
 
     override def decode(s: String): Try[Int] = Try { s.toInt }
   }
 
 
-  implicit object BigDecimalValueCodec extends FixValueCodec[BigDecimal] {
+  implicit object BigDecimalValueCodec extends ValueCodecFix[BigDecimal] {
     override def encode(a: BigDecimal): String = a.toString()
 
     override def decode(s: String): Try[BigDecimal] = Try { BigDecimal(s) }
   }
 
-  implicit object DateTimeValueCodec extends FixValueCodec[DateTime] {
+  implicit object DateTimeValueCodec extends ValueCodecFix[DateTime] {
     private val formatter = DateTimeFormat.forPattern("yyyyMMdd-HH:mm:ss").withZoneUTC()
     override def encode(a: DateTime): String = formatter.print(a)
 
