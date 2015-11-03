@@ -1,7 +1,8 @@
 package strucs.argonaut
 
-import argonaut._
-import strucs.{Wrapper, StructKeyProvider, Struct, ComposeCodec}
+import _root_.argonaut._
+import strucs.ComposeCodec.ConvertEncode
+import strucs._
 import Struct.Nil
 import Argonaut._
 import scala.language.experimental.macros
@@ -17,25 +18,22 @@ object StrucsEncodeJson {
     * @tparam T mixin, each type M in the mixin must have an implicit EncodeJson[M] in scope */
   implicit def makeEncodeJson[T]: EncodeJson[Struct[T]] = macro ComposeCodec.macroImpl[EncodeJson[_], T]
 
-  implicit object ComposeEncodeJson extends ComposeCodec[EncodeJson] {
-    /** Build a Codec for an empty Struct */
-    override def zero: EncodeJson[Struct[Nil]] = new EncodeJson[Struct[Nil]] {
-      override def encode(a: Struct[Nil]): Json = jObject(JsonObject.empty)
-    }
+  implicit val monoid = new Monoid[Json] {
+    override def zero: Json = jObject(JsonObject.empty)
 
-
-    /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
-    override def prepend[A: StructKeyProvider, B](ca: EncodeJson[A], cb: => EncodeJson[Struct[B]]): EncodeJson[Struct[A with B]] = new EncodeJson[Struct[A with B]] {
-      override def encode(struct: Struct[A with B]): Json = {
-        val bjson = cb.encode(struct.shrink[B])
-        val ajson = ca.encode(struct.get[A])
-        ajson.assoc match {
-          case Some(assoc :: Nil) => assoc ->: bjson
-          case _ => sys.error(s"Cannot prepend $ajson to $bjson")
-        }
+    override def prepend(a: Json, b: Json): Json = {
+      a.assoc match {
+        case Some(assoc :: Nil) => assoc ->: b
+        case _ => sys.error(s"Cannot prepend $a to $b")
       }
     }
   }
+
+  implicit val trans = new ConvertEncode[EncodeJson, Json] {
+    override def fromFunc[A](_encode: (A) => Json) = EncodeJson[A](_encode)
+    override def toFunc[A](enc: EncodeJson[A]) = enc.encode
+  }
+  implicit val composeEncode: ComposeCodec[EncodeJson] = ComposeCodec.makeComposeCodec[EncodeJson, Json]
 
 
 

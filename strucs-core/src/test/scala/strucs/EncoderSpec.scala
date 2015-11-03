@@ -34,13 +34,13 @@ object EncoderSpec {
     implicit val monoid = new Monoid[String] {
       override def zero: String = ""
 
-      override def append(f1: String, f2: String): String =
-        if (f1 == "") f2
-        else if (f2 == "") f1
-        else f1 + ", " + f2
+      override def prepend(a: String, b: String): String =
+        if (a == "") b
+        else if (b == "") a
+        else a + ", " + b
     }
 
-    implicit val trans = new TransformEncode[EncodeCommaSeparated, String] {
+    implicit val trans = new ConvertEncode[EncodeCommaSeparated, String] {
       override def fromFunc[A](_encode: (A) => String) = new EncodeCommaSeparated[A] {
         override def encode(a: A): String = _encode(a)
       }
