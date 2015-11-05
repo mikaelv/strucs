@@ -9,23 +9,22 @@ Using the strucs extensions, a single struc instance can be easily serialized/de
 ## Quick start
 
 ### Create/Add/Update
-The following code snippet can be pasted in a REPL session.
-Check out the unit tests for more.
 
 ```tut:silent
 import strucs._
 
-case class Symbol(v: String) extends AnyVal
+case class Ticker(v: String) extends AnyVal
 case class Quantity(v: BigDecimal) extends AnyVal
 case class Price(v: BigDecimal) extends AnyVal
 ```
 ```tut
-val order = Struct(Symbol("^FTSE"))
+val order = Struct(Ticker("^FTSE"))
 val order2 = order.add(Quantity(5))
-order2.get[Symbol]
-val order3 = order2.update(Symbol("^FCHI"))
-order3.get[Symbol]
+order2.get[Ticker]
+val order3 = order2.update(Ticker("^FCHI"))
+order3.get[Ticker]
 ```
+order3 does not have a Price field. Any attempt to access it is rejected by the compiler.
 ```tut:fail
 order3.get[Price]
 ```
@@ -33,38 +32,71 @@ order3.get[Price]
 ### Structural typing
 *When I see a bird that walks like a duck and swims like a duck and quacks like a duck, I call that bird a duck.*
 
-Let's define a function that accept any Struct that has one or more specific fields.
+Let's define a function that accepts any Struct that has two specific fields.
 ```tut
 def totalPrice[T <: Quantity with Price](struct: Struct[T]): BigDecimal = {
   struct.get[Quantity].v * struct.get[Price].v
 }
 ```
+A call with an incompatible Struct is rejected by the compiler:  
 ```tut:fail
 totalPrice(order3)
 ```
+But succeeds when we add the required field:
 ```tut
 totalPrice(order3.add(Price(10)))
 ```
 
 
-
 ### Encoding/Decoding
-```tut
+Provided that the encoders/decoders for the fields are in scope, the same struct instance can be encoded/decoded to various formats:
+```tut:silent
+import strucs.json._
+import strucs.fix._
+import strucs.fix.dict.fix42._ // defines common FIX 4.2 tags with their codec
+import CodecFix._
+import StrucsCodecJson._
+import StrucsEncodeJson._
+import StrucsDecodeJson._
+import argonaut._
+import Argonaut._
 
+type MyOrder = Struct[OrderQty with Symbol with Nil]
+val order: MyOrder = Struct.empty + OrderQty(10) + Symbol("^FTSE")
+```
+The order can be encoded/decoded to/from FIX if we add the required tags BeginString and MsgType. 
+```tut
+val fixOrder = order + BeginString.Fix42 + MsgType.OrderSingle
+val fix = fixOrder.toFixMessageString
+fix.toStruct[fixOrder.Mixin]
+```
+If we define the [Argonaut](http://argonaut.io/) Json codecs for Symbol and OrderQty,
+```tut:silent
+implicit val symbolCodecJson: CodecJson[Symbol] = StrucsCodecJson.fromWrapper[Symbol, String]("symbol")
+implicit val orderQtyCodecJson: CodecJson[OrderQty] = StrucsCodecJson.fromWrapper[OrderQty, BigDecimal]("quantity")
+```
+We can encode/decode the order to/from Json
+```tut
+val json = order.toJsonString
+json.decodeOption[MyOrder]
 ```
 
+### More examples
+Please check out the unit tests for more usage examples.
+
 ## Motivation
-Let's say you want to manipulate Orders in your system.
-The common approach would be: 
+Consider a program which manipulate Orders.
+A common approach would be: 
 ```tut
 case class SimpleOrder(symbol: String, quantity: BigDecimal, price: BigDecimal)
 ```
 Using simple types such as String, Int, BigDecimal, ... everywhere can rapidly make the code confusing and fragile.
 Imagine we have to extract the price and quantity of all the FTSE orders 
 ```tut
-def simpleFootsieOrders(orders: List[SimpleOrder]): List[(BigDecimal, BigDecimal)] = orders collect {
-  case SimpleOrder(sym, q, p) if sym == "^FTSE" =>  (q, p)
-}
+def simpleFootsieOrders(orders: List[SimpleOrder]): List[(BigDecimal, BigDecimal)] = 
+  orders collect {
+    case SimpleOrder(sym, q, p) if sym == "^FTSE" =>  (q, p)
+  }
 ```
 If I do not get the argument order right (or if it has been refactored), the code above will compile but will not do what I expect.
 Furthermore, the return type is List[(BigDecimal, BigDecimal)], which is unclear for the users of the function. 
@@ -80,9 +112,10 @@ case class Price(v: BigDecimal) extends AnyVal
 case class TypedOrder(symbol: Symbol, quantity: Quantity, price: Price)
 ```
 ```tut
-def typedFootsieOrders(orders: List[TypedOrder]): List[(Quantity, Price)] = orders.collect {
-  case TypedOrder(sym, q, p) if sym == FTSE => (q, p)
-}
+def typedFootsieOrders(orders: List[TypedOrder]): List[(Quantity, Price)] = 
+  orders.collect {
+    case TypedOrder(sym, q, p) if sym == FTSE => (q, p)
+  }
 ```
 Now the return type is much clearer and safer, and my matching expression is safer as well: 
 I cannot inadvertently swap arguments without getting a compilation error.
@@ -108,7 +141,8 @@ With strucs, we can define the same as follows:
 type BaseOrderType = Symbol with Quantity with Nil
 type StructOrder = Struct[BaseOrderType with Price]
 type StructStopOrder = Struct[BaseOrderType with StopPrice]
-def filterFootsie[T <: Symbol](orders: List[Struct[T]]) = orders.filter(_.get[Symbol] == FTSE)
+def filterFootsie[T <: Symbol](orders: List[Struct[T]]) = 
+  orders.filter(_.get[Symbol] == FTSE)
 ```
 The "order" types are now **composable**. I can define an abstraction BaseOrder, and reuse it to define other Order types. 
 Also, I do not have to declare field names anymore, as I use only the types of the fields to access them.  

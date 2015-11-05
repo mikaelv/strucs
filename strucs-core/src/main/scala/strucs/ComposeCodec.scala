@@ -60,7 +60,7 @@ object ComposeCodec {
     // Extract constituents
     import c.universe._
     val typeTag: c.universe.WeakTypeTag[T] = implicitly[WeakTypeTag[T]]
-    info("creating codec for type: "+typeTag.tpe.toString)
+    //info("creating codec for type: "+typeTag.tpe.toString)
 
     val types = FieldExtractor.extractTypes(typeTag.tpe)(c.universe)
     //info("extracted types: "+types.mkString(", "))
@@ -74,7 +74,7 @@ object ComposeCodec {
       q"comp.prepend(${implicitCodec(tpe.asInstanceOf[Type])}, $tree)"
     }
     val codec = q"val comp = implicitly[strucs.ComposeCodec[$codecSymbol]]; $composed.asInstanceOf[$codecSymbol[Struct[${typeTag.tpe}]]]"
-    info("codec = "+codec.toString)
+    //info("codec = "+codec.toString)
     codec
   }
 

@@ -1,4 +1,4 @@
-package strucs.argonaut
+package strucs.json
 
 import _root_.argonaut._
 import strucs.ComposeCodec.ConvertEncode

@@ -1,11 +1,11 @@
 By Mid-November
-- Json example with adding common bits for mongo
-- documentation for encode/decode
 - documentation/test for get with options
+- improve imports structure (be inspired from argonaut)
+- Json example with adding common bits for mongo
 
 Easy
 
-- Example with pre-defined Struct type (say OrderSingle), verifies that it does not compile / that it compiles regardless of the insertion order
+? - Example with pre-defined Struct type (say OrderSingle), verifies that it does not compile / that it compiles regardless of the insertion order
 
 
 Nice to have

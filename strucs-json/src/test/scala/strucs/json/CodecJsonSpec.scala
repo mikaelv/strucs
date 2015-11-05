@@ -1,4 +1,4 @@
-package strucs.argonaut
+package strucs.json
 
 import argonaut.Argonaut._
 import argonaut.{CodecJson, DecodeJson, EncodeJson}
