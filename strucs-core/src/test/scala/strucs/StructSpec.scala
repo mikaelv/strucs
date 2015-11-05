@@ -2,7 +2,6 @@ package strucs
 
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
-import strucs.Struct.Nil
 
 import scala.reflect.runtime.universe._
 

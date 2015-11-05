@@ -4,7 +4,6 @@ import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
 import strucs.ComposeCodec._
 import strucs.EncoderSpec._
-import strucs.Struct.Nil
 
 /**
  *

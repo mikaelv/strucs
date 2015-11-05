@@ -3,7 +3,7 @@ import Keys._
 
 object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Seq(
-    organization := "org.strucs",
+    organization := "strucs",
     version := "1.0.0",
     scalaVersion := "2.11.6",
     resolvers += Resolver.sonatypeRepo("snapshots"),
@@ -19,7 +19,7 @@ object StrucsBuild extends Build {
     "strucs",
     file("."),
     settings = buildSettings
-  ) aggregate(json, fix, core)
+  ) aggregate(json, fix, core, demo)
 
   lazy val json: Project = Project(
     "strucs-json",
@@ -47,6 +47,11 @@ object StrucsBuild extends Build {
         "org.scala-lang" % "scala-reflect" % "2.11.6"
       ))
   )
+
+  lazy val demo: Project = Project("strucs-demo", file("strucs-demo"))
+    .dependsOn(core, fix, json)
+    .settings(buildSettings)
+    .settings(tut.Plugin.tutSettings)
 
   lazy val scalaTest = Seq("org.scalatest" % "scalatest_2.11" % "2.2.4" % "test")
 

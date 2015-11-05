@@ -1,7 +1,5 @@
 package strucs
 
-import strucs.Struct.Nil
-
 import scala.language.experimental.macros
 import scala.languageFeature.higherKinds
 import scala.reflect.macros.blackbox

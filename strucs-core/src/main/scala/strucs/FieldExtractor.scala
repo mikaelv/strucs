@@ -1,6 +1,5 @@
 package strucs
 
-import strucs.Struct.Nil
 
 import scala.reflect.api.Universe
 

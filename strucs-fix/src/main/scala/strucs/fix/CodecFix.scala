@@ -1,9 +1,6 @@
 package strucs.fix
 
-import strucs.{StructKeyProvider, Struct, ComposeCodec}
-import strucs.StructKeyProvider
-import Struct.Nil
-import strucs.Struct
+import strucs._
 import strucs.fix.dict.fix42.{MsgType, BeginString}
 import scala.language.experimental.macros
 

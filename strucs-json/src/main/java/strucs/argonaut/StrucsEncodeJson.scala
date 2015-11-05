@@ -3,7 +3,6 @@ package strucs.argonaut
 import _root_.argonaut._
 import strucs.ComposeCodec.ConvertEncode
 import strucs._
-import Struct.Nil
 import Argonaut._
 import scala.language.experimental.macros
 

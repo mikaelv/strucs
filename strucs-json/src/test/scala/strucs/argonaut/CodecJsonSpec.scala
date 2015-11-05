@@ -8,10 +8,7 @@ import StrucsDecodeJson._
 import StrucsEncodeJson._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.{FlatSpec, Matchers}
-import strucs.{Wrapper, Struct}
-import strucs.Wrapper
-import Struct.Nil
-import strucs.Struct
+import strucs._
 
 import scalaz.{-\/, \/-}
 
@@ -20,9 +17,6 @@ import scalaz.{-\/, \/-}
 class CodecJsonSpec  extends FlatSpec with Matchers with TypeCheckedTripleEquals {
   val person = Struct.empty + Name("Albert") + Age(76) + City("Princeton") + (Male: Gender)
 
-  import argonaut._
-  import Argonaut._
-  
   "an EncodeJson" should "encode a Person" in {
     val json = person.toJsonString
     json should === ("""{"name":"Albert","age":76,"city":"Princeton","gender":"M"}""")

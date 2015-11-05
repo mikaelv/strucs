@@ -32,8 +32,6 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
 }
 
 object Struct {
-  trait Nil
-
   def apply[T](t: T)(implicit k: StructKeyProvider[T]): Struct[T with Nil] = new Struct(Map(k.key -> t))
   def empty: Struct[Nil] = new Struct[Nil](Map.empty)
 }

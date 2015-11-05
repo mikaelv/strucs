@@ -1,7 +1,7 @@
 By Mid-November
 - Json example with adding common bits for mongo
 - documentation for encode/decode
-- documentation for get with options
+- documentation/test for get with options
 
 Easy
 
