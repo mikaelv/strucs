@@ -4,7 +4,7 @@ Strucs is a lightweight library that allows to manipulate, encode and decode fle
 
 A Struct is analogous to a case class that can accept new fields dynamically.
 
-Using the strucs extensions, a single struc instance can be easily serialized/deserialized to various formats, such as JSON, FIX protocol, Protobuf, ...
+Using the strucs extensions, a single struc instance can be easily serialized/deserialized to various formats, such as JSON, [FIX protocol](https://en.wikipedia.org/wiki/Financial_Information_eXchange), Protobuf, ...
   
 ## Quick start
 
@@ -75,7 +75,7 @@ If we define the [Argonaut](http://argonaut.io/) Json codecs for Symbol and Orde
 implicit val symbolCodecJson: CodecJson[Symbol] = StrucsCodecJson.fromWrapper[Symbol, String]("symbol")
 implicit val orderQtyCodecJson: CodecJson[OrderQty] = StrucsCodecJson.fromWrapper[OrderQty, BigDecimal]("quantity")
 ```
-We can encode/decode the order to/from Json
+We can encode/decode our order to/from Json
 ```tut
 val json = order.toJsonString
 json.decodeOption[MyOrder]
@@ -85,12 +85,12 @@ json.decodeOption[MyOrder]
 Please check out the unit tests for more usage examples.
 
 ## Motivation
-Consider a program which manipulate Orders.
-A common approach would be: 
+Consider a program which manages Orders.
+A common approach would be to use case classes with simple types for its fields: 
 ```tut
 case class SimpleOrder(symbol: String, quantity: BigDecimal, price: BigDecimal)
 ```
-Using simple types such as String, Int, BigDecimal, ... everywhere can rapidly make the code confusing and fragile.
+However, using simple types such as String, Int, BigDecimal, ... everywhere can rapidly make the code confusing and fragile.
 Imagine we have to extract the price and quantity of all the FTSE orders 
 ```tut
 def simpleFootsieOrders(orders: List[SimpleOrder]): List[(BigDecimal, BigDecimal)] = 
@@ -102,7 +102,7 @@ If I do not get the argument order right (or if it has been refactored), the cod
 Furthermore, the return type is List[(BigDecimal, BigDecimal)], which is unclear for the users of the function. 
 
 
-At this point you might decide to use [value classes](http://docs.scala-lang.org/overviews/core/value-classes.html) to enforce a better type safety
+We need stronger types to make our code clearer and safer. You you might want to use [value classes](http://docs.scala-lang.org/overviews/core/value-classes.html) as follows:
 ```tut:silent
 case class Symbol(v: String) extends AnyVal
 val FTSE = Symbol("FTSE")
@@ -120,9 +120,9 @@ def typedFootsieOrders(orders: List[TypedOrder]): List[(Quantity, Price)] =
 Now the return type is much clearer and safer, and my matching expression is safer as well: 
 I cannot inadvertently swap arguments without getting a compilation error.
 
-However, we now observe that the names of the attributes are redundant with their types. 
+On the other hand, we now observe that the names of the attributes are redundant with their types. 
 It would be nicer if we could declare them only once.
-Also, I cannot easily reuse a set of fields in another case class:
+Also, I cannot easily reuse a set of fields, such as symbol and quantity, in another case class. I need to redefine the class with all its fields:
 ```tut
 case class StopPrice(v: BigDecimal)
 case class StopOrder(symbol: Symbol, quantity: Quantity, price: StopPrice)
@@ -137,14 +137,14 @@ def filterFootsie(orders: List[Order]): List[Order] = orders.filter(_.symbol == 
 This leads to some duplication, and it may not even be feasible if TypedOrder is defined in a third party library.
  
 With strucs, we can define the same as follows:
-```tut
+```tut:silent
 type BaseOrderType = Symbol with Quantity with Nil
 type StructOrder = Struct[BaseOrderType with Price]
 type StructStopOrder = Struct[BaseOrderType with StopPrice]
 def filterFootsie[T <: Symbol](orders: List[Struct[T]]) = 
   orders.filter(_.get[Symbol] == FTSE)
 ```
-The "order" types are now **composable**. I can define an abstraction BaseOrder, and reuse it to define other Order types. 
+The different "order" types are now **composable**. I can define an abstraction BaseOrder, and reuse it to define other Order types. 
 Also, I do not have to declare field names anymore, as I use only the types of the fields to access them.  
 This composition capability also applies to instances:
 
