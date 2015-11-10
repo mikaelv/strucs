@@ -18,14 +18,14 @@ trait CodecFix[A] {
 
 
 object CodecFix {
-  /** Automatically create a FixCodec for any Struct[A]
-    * @tparam T mixin, each type M in the mixin must have an implicit FixCodec[M] in scope */
-  implicit def makeFixCodec[T]: CodecFix[Struct[T]] = macro ComposeCodec.macroImpl[CodecFix[_], T]
+  /** Automatically create a CodecFix for any Struct[A]
+    * @tparam T mixin, each type M in the mixin must have an implicit CodecFix[M] in scope */
+  implicit def makeCodecFix[T]: CodecFix[Struct[T]] = macro ComposeCodec.macroImpl[CodecFix[_], T]
 
 
 
   // TODO generalize with a codec that returns a B : Monoid ?
-  implicit object ComposeFixCodec extends ComposeCodec[CodecFix] {
+  implicit object ComposeCodecFix extends ComposeCodec[CodecFix] {
     /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
     override def prepend[A: StructKeyProvider, B](ca: CodecFix[A], cb: => CodecFix[Struct[B]]): CodecFix[Struct[A with B]] = new CodecFix[Struct[A with B]] {
       override def encode(a: Struct[A with B]): FixElement = {
