@@ -1,11 +1,34 @@
 class: center, middle
-
 # strucs
+![logo](logo.png)
+
 Flexible data structures in scala
 
 https://github.com/mikaelv/strucs
 ---
+# Plan
+1. Why ?
+2. Adding fields
+3. Getting fields
+4. Composing Structs
+5. Structural typing
+6. Under the hood
+7. Future 
+---
+# Why ?
+Case classes are not composable
 
+```tut:invisible
+case class Address(street: String)
+```
+```tut:silent
+case class CreatePersonJsonPayload(name: String, age: Int)
+case class PersonModel(name: String, age: Int, address: Option[Address])
+case class PersonDatabaseRow(id: String, name: String, age: Int, addressId: String)
+```
+
+* How can I define the common fields only once ?
+---
 # Adding fields
 
 ```tut:silent
@@ -80,7 +103,7 @@ implicit val symbolCodecJson: CodecJson[Symbol] = StrucsCodecJson.fromWrapper[Sy
 implicit val orderQtyCodecJson: CodecJson[OrderQty] = StrucsCodecJson.fromWrapper[OrderQty, BigDecimal]("quantity")
 ```
 ```tut:silent
-type MyOrder = Struct[OrderQty with Symbol]
+type MyOrder = Struct[OrderQty with Symbol with Nil]
 val json = """{"quantity":10,"symbol":"^FTSE"}"""
 ```
 ```tut
@@ -92,7 +115,7 @@ val fix = fixOrder.toFixMessageString
 ```
 
 ---
-# Under the hood
+# Under the hood: Struct
 ```tut:silent
 case class Struct[F](private val fields: Map[StructKey, Any]) {
 
@@ -114,24 +137,36 @@ object Struct {
 }
 ```
 ---
-# Under the hood
+# Under the hood: CodecFix
 ```tut:invisible
 import scala.util.{Failure, Success, Try}
 import scala.language.experimental.macros
 import strucs.fix.{CodecFix => _}
 ```
-```tut:silent
+```scala
 trait CodecFix[A] {
   def encode(a: A): FixElement
   def decode(fix: FixElement): Try[A]
 }
 ```
-```tut:silent
+Sample implementations:
+```scala
 case class OrderQty(v: BigDecimal) extends AnyVal
 object OrderQty {
-  implicit val codec: strucs.fix.CodecFix[OrderQty] = 
+  implicit val codec: CodecFix[OrderQty] = 
     new TagCodecFix[OrderQty, BigDecimal](38)
 }
+
+case class Symbol(v: String) extends AnyVal
+object Symbol {
+  implicit val codec: CodecFix[Symbol] = 
+    new TagCodecFix[Symbol, String](55)
+}
+```
+---
+# Under the hood: ComposeCodec
+```tut:invisible
+import strucs.fix.CodecFix
 ```
 ```tut:silent
 /** Defines how a Codec[Struct[_]] can be built using the codecs of its fields */
@@ -143,9 +178,19 @@ trait ComposeCodec[Codec[_]] {
   /** Build a Codec using a field codec a and a codec b for the rest */
   def prepend[A : StructKeyProvider, B](
                 ca: Codec[A], 
-                cb: => Codec[Struct[B]]): Codec[Struct[A with B]]
+                cb: Codec[Struct[B]]): Codec[Struct[A with B]]
 }
 ```
+```tut:silent
+def composeCodec: ComposeCodec[CodecFix] = ???
+
+def codec1: CodecFix[Struct[Symbol with Nil]] =  
+    composeCodec.prepend[Symbol, Nil](Symbol.codec, composeCodec.zero)
+    
+def codec2: CodecFix[Struct[OrderQty with Symbol with Nil]] =  
+    composeCodec.prepend[OrderQty, Symbol with Nil](OrderQty.codec, codec1)
+```
+
 ---
 ```tut:silent
 object CodecFix {
@@ -156,7 +201,7 @@ object CodecFix {
     macro ComposeCodec.macroImpl[CodecFix[_], T]
 
 
-  implicit object ComposeFixCodec extends ComposeCodec[CodecFix] {
+  implicit object ComposeCodecFix extends ComposeCodec[CodecFix] {
     /** Build a Codec for an empty Struct */
     def zero: CodecFix[Struct[Nil]] = new CodecFix[Struct[Nil]] {
       override def encode(a: Struct[Nil]): FixElement = FixGroup.empty
@@ -165,16 +210,15 @@ object CodecFix {
     
     /** Build a Codec using a field codec a and a codec b for the rest */
     def prepend[A: StructKeyProvider, B](
-                        ca: CodecFix[A], 
-                        cb: => CodecFix[Struct[B]]): CodecFix[Struct[A with B]] = 
-    new CodecFix[Struct[A with B]] {
-      override def encode(a: Struct[A with B]): FixElement = {
+                ca: CodecFix[A], 
+                cb: CodecFix[Struct[B]]) = new CodecFix[Struct[A with B]] {
+      def encode(a: Struct[A with B]): FixElement = {
         val bfix = cb.encode(a.shrink[B])
         val afix = ca.encode(a.get[A])
         afix + bfix
       }
 
-      override def decode(fix: FixElement): Try[Struct[A with B]] = {
+      def decode(fix: FixElement): Try[Struct[A with B]] = {
         for {
           structb <- cb.decode(fix)
           a <- ca.decode(fix)
@@ -186,8 +230,9 @@ object CodecFix {
 
 ```
 ---
-# Same pattern for other codecs
-Decoding json using Argonaut:
+# Under the hood: argonaut.DecodeJson
+
+The implementation of ComposeCodec is very similar
 ```tut:silent
 object StrucsDecodeJson {
   implicit def makeDecodeJson[T]: DecodeJson[Struct[T]] = 
@@ -195,17 +240,16 @@ object StrucsDecodeJson {
 
   implicit object ComposeDecodeJson extends ComposeCodec[DecodeJson] {
     /** Build a Codec for an empty Struct */
-    def zero: DecodeJson[Struct[Nil]] = new DecodeJson[Struct[Nil]] {
-      override def decode(c: HCursor): DecodeResult[Struct[Nil]] = 
-      DecodeResult.ok(Struct.empty)
+    def zero = new DecodeJson[Struct[Nil]] {
+      def decode(c: HCursor): DecodeResult[Struct[Nil]] = 
+        DecodeResult.ok(Struct.empty)
     }
 
     /** Build a Codec using a field codec a and a codec b for the rest of the Struct */
     def prepend[A: StructKeyProvider, B](
-                         ca: DecodeJson[A], 
-                         cb: => DecodeJson[Struct[B]]): DecodeJson[Struct[A with B]] = 
-    new DecodeJson[Struct[A with B]] {
-      override def decode(c: HCursor): DecodeResult[Struct[A with B]] = {
+                ca: DecodeJson[A], 
+                cb: DecodeJson[Struct[B]]) = new DecodeJson[Struct[A with B]] {
+      def decode(c: HCursor): DecodeResult[Struct[A with B]] = {
         for {
           structb <- cb.decode(c)
           a <- ca.decode(c)
@@ -222,6 +266,8 @@ object StrucsDecodeJson {
 * Struct <==> Avro
 * Struct <==> Protobuf
 * Typed Spark DataFrame ?
+
+### Contributions are welcome !
 ---
 class: center, middle
 # Questions ?
