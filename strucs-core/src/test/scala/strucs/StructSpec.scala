@@ -55,4 +55,8 @@ class StructSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
 
     fn(baseStruct.add(city)) should be(name)
   }
+
+  it should "manage optional fields" ignore {
+    // TODO
+  }
 }

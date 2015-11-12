@@ -16,4 +16,5 @@ object StructKeyProvider {
 
   /** Provides a key using the Class name. Beware of ADT types: use Option(x) instead of Some(x) */
   implicit def simpleNameStructKeyProvider[A : TypeTag]: StructKeyProvider[A] = StructKeyProvider[A](StructKey(implicitly[TypeTag[A]].tpe.typeSymbol.toString))
+  // TODO make sure two fields with the same name in different packages do not clash
 }

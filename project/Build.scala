@@ -39,6 +39,18 @@ object StrucsBuild extends Build {
   ) dependsOn(core)
 
 
+  lazy val spark: Project = Project(
+    "strucs-spark",
+    file("strucs-spark"),
+    settings = buildSettings ++ Seq(
+      libraryDependencies += "org.apache.spark" %% "spark-core" % "1.5.2",
+      libraryDependencies += "org.apache.spark" %% "spark-sql" % "1.5.2",
+      libraryDependencies ++= scalaTest ++ joda
+    )
+  ) dependsOn(core)
+
+
+
   lazy val core: Project = Project(
     "strucs-core",
     file("strucs-core"),
