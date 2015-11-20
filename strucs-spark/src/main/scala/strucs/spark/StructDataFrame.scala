@@ -8,6 +8,7 @@ import strucs.{Struct, StructKeyProvider}
  * Wraps a DataFrame to make all operations type safe
  */
 class StructDataFrame[F] private(val df: DataFrame) {
+  // TODO create a ColumnProvider ? Might not be easy to convert to RDD[Struct]
   def select[A](implicit k: StructKeyProvider[A], ev: F <:< A): StructDataFrame[A] =
     new StructDataFrame[A](df.select(k.key.value))
 

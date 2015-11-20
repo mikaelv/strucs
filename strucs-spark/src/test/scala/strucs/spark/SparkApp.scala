@@ -49,7 +49,8 @@ object SparkApp extends App {
   avgSdf.select[AvgAge].show()
 
   sdf.groupBy[Name].agg[Age, AvgAge, MaxAge](avg, max).select[Name, MaxAge].show()
-
+  // Actually I do not use the values contained in these types.
+  // I should verify that avg cannot be called on a Wrapper[String]
 }
 
 
