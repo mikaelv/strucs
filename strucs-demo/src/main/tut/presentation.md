@@ -28,6 +28,8 @@ case class PersonDatabaseRow(id: String, name: String, age: Int, addressId: Stri
 ```
 
 * How can I define the common fields only once ?
+* Alternative: shapeless records
+* Strucs behaves like a HSet
 ---
 # Adding fields
 

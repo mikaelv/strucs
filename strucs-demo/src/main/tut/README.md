@@ -5,6 +5,8 @@ Strucs is a lightweight library that allows to manipulate, encode and decode fle
 A Struct is analogous to a case class that can accept new fields dynamically.
 
 Using the strucs extensions, a single struc instance can be easily serialized/deserialized to various formats, such as JSON, [FIX protocol](https://en.wikipedia.org/wiki/Financial_Information_eXchange), Protobuf, ...
+
+[Slides for Scala eXchange 2015](https://rawgit.com/mikaelv/strucs/master/presentation.html#1)
   
 ## Quick start
 
