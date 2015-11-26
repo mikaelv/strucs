@@ -4,7 +4,7 @@ package strucs
  * Extensible data structure with type safety
  * @tparam F mixin of all the fields types
  */
-case class Struct[F](private val fields: Map[StructKey, Any]) {
+case class Struct[F](private[strucs] val fields: Map[StructKey, Any]) {
   type Mixin = F
 
   def +[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) = add[T](value)
@@ -13,7 +13,7 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
   def add[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:!< T ) : Struct[F with T] = new Struct[F with T](fields + (k.key -> value))
 
   /** Updates an existing field */
-  def update[T](value: T)(implicit k: StructKeyProvider[T], ev: F <:< T ) : Struct[F] = new Struct[F](fields + (k.key -> value))
+  def update[T >: F](value: T)(implicit k: StructKeyProvider[T]) : Struct[F] = new Struct[F](fields + (k.key -> value))
 
   def ++[F2](rec: Struct[F2]): Struct[F with F2] = merge[F2](rec)
 
@@ -21,7 +21,7 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
   def merge[F2](rec: Struct[F2]): Struct[F with F2] = new Struct[F with F2](fields ++ rec.fields)
 
   /** Get a field */
-  def get[T](implicit k: StructKeyProvider[T], ev: F <:< T): T = fields(k.key).asInstanceOf[T]
+  def get[T >: F](implicit k: StructKeyProvider[T]): T = fields(k.key).asInstanceOf[T]
 
   /** Get a subset of the fields */
   def shrink[F2](implicit ev: F <:< F2): Struct[F2] = {
@@ -30,7 +30,6 @@ case class Struct[F](private val fields: Map[StructKey, Any]) {
     this.asInstanceOf[Struct[F2]]
   }
 
-  private[this] def getByKey(key: StructKey): Any = fields(key)
 }
 
 object Struct {

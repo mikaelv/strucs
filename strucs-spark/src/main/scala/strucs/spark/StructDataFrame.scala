@@ -1,14 +1,15 @@
 package strucs.spark
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Column, GroupedData, DataFrame}
-import strucs.{Struct, StructKeyProvider}
+import org.apache.spark.sql.{Row, Column, GroupedData, DataFrame}
+import strucs.{StructKey, Struct, StructKeyProvider}
+
 
 /**
  * Wraps a DataFrame to make all operations type safe
  */
 class StructDataFrame[F] private(val df: DataFrame) {
-  // TODO create a ColumnProvider ? Might not be easy to convert to RDD[Struct]
+  // TODO create a ColumnProvider ?
   def select[A](implicit k: StructKeyProvider[A], ev: F <:< A): StructDataFrame[A] =
     new StructDataFrame[A](df.select(k.key.value))
 
@@ -21,7 +22,20 @@ class StructDataFrame[F] private(val df: DataFrame) {
 
   def show() = df.show()
 
-  def structRDD: RDD[Struct[F]] = df.rdd.map(row => ???)
+  def rdd: RDD[Struct[F]] = df.rdd.map(row => Struct(RowMap(row)))
+}
+
+case class RowMap(row: Row) extends Map[StructKey, Any] {
+  // It is easier to rebuild a brand new map rather than fiddling with row.schema
+  override def +[B1 >: Any](kv: (StructKey, B1)): Map[StructKey, B1] = Map(keyValues: _*) + kv
+
+  override def get(key: StructKey): Option[Any] = Some(row.getAs[Any](key.value))
+
+  def keyValues: Seq[(StructKey, Any)] = (row.schema.fieldNames.map(StructKey.apply) zip row.toSeq).toSeq
+
+  override def iterator: Iterator[(StructKey, Any)] = keyValues.iterator
+
+  override def -(key: StructKey): Map[StructKey, Any] = ??? // not called from Struct
 }
 
 object StructDataFrame {

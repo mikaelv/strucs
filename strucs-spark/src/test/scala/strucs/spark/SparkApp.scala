@@ -1,9 +1,10 @@
 package strucs.spark
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import strucs.spark.StructDataFrame._
-import strucs.{StructKey, StructKeyProvider}
+import strucs.{Nil, Struct, StructKey, StructKeyProvider}
 
 abstract class KeyCompanion[T](key: String) {
   implicit val keyProvider: StructKeyProvider[T] = StructKeyProvider[T](StructKey(key))
@@ -39,18 +40,22 @@ object SparkApp extends App {
     ("Gerard", 55),
     ("Gerard", 65))).toDF(
      "name"  , "age")
-
+  // Standard DataFrame: runtime failure if these fields do not exist
   df.groupBy("name").agg(avg("age"), max("age")).show()
 
-  val sdf = df.toStructDF[Name, Age]
+  // StructDataFrame: method calls are type safe after the initial conversion
+  val sdf: StructDataFrame[Name with Age] = df.toStructDF[Name, Age]
   sdf.select[Name].show()
   val avgSdf = sdf.groupBy[Name].agg[Age, AvgAge](avg)
   avgSdf.show()
   avgSdf.select[AvgAge].show()
 
-  sdf.groupBy[Name].agg[Age, AvgAge, MaxAge](avg, max).select[Name, MaxAge].show()
-  // Actually I do not use the values contained in these types.
-  // I should verify that avg cannot be called on a Wrapper[String]
+  sdf.groupBy[Name].agg[Age, AvgAge, MaxAge](avg, max).select[Name, MaxAge].show() // TODO it would be nice to verify that avg cannot be called on a non-numeric type
+
+  // RDD style
+  val rdd: RDD[Struct[Name with AvgAge with Nil]] = avgSdf.rdd.map(s => Struct.empty + s.get[Name] + s.get[AvgAge])
+  println(rdd.collect().mkString("\n"))
+
 }
 
 
