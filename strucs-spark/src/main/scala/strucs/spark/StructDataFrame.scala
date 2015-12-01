@@ -2,7 +2,7 @@ package strucs.spark
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, Column, GroupedData, DataFrame}
-import strucs.{StructKey, Struct, StructKeyProvider}
+import strucs.{Nil, StructKey, Struct, StructKeyProvider}
 
 
 /**
@@ -10,15 +10,17 @@ import strucs.{StructKey, Struct, StructKeyProvider}
  */
 class StructDataFrame[F] private(val df: DataFrame) {
   // TODO create a ColumnProvider ?
-  def select[A](implicit k: StructKeyProvider[A], ev: F <:< A): StructDataFrame[A] =
-    new StructDataFrame[A](df.select(k.key.value))
+  def select[A](implicit k: StructKeyProvider[A], ev: F <:< A): StructDataFrame[A with Nil] =
+    new StructDataFrame[A with Nil](df.select(k.key.value))
 
-  def select[A, B](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], eva: F <:< A, evb: F <:<B): StructDataFrame[A with B] =
-    new StructDataFrame[A with B](df.select(ka.key.value, kb.key.value))
+  def select[A, B](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], eva: F <:< A, evb: F <:<B): StructDataFrame[A with B with Nil] =
+    new StructDataFrame[A with B with Nil](df.select(ka.key.value, kb.key.value))
 
   def groupBy[G](implicit k: StructKeyProvider[G], ev: F <:< G): StructGroupedData[G, F] =
     new StructGroupedData[G, F](df.groupBy(k.key.value))
 
+
+  def collect(): Array[Struct[F]] = rdd.collect()
 
   def show() = df.show()
 
@@ -41,14 +43,16 @@ case class RowMap(row: Row) extends Map[StructKey, Any] {
 object StructDataFrame {
 
   implicit class DataFrameOps(df: DataFrame) {
-    def toStructDF[A, B](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B]): StructDataFrame[A with B] = {
+    def toStructDF[A, B](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B]): StructDataFrame[A with B with Nil] = {
       // TODO verify that df's schema is compatible with A and B
-      new StructDataFrame[A with B](df)
+
+      // TODO pass a Wrapper, and store it in the StructDataFrame, so that we can build A from the type contained in the DF
+      new StructDataFrame[A with B with Nil](df)
     }
 
-    def toStructDF[A, B, C](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], kc: StructKeyProvider[C]): StructDataFrame[A with B with C] = {
+    def toStructDF[A, B, C](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], kc: StructKeyProvider[C]): StructDataFrame[A with B with C with Nil] = {
       // TODO verify that df's schema is compatible with A, B, C
-      new StructDataFrame[A with B with C](df)
+      new StructDataFrame[A with B with C with Nil](df)
     }
   }
 
@@ -57,10 +61,10 @@ object StructDataFrame {
 import StructDataFrame._
 class StructGroupedData[G : StructKeyProvider, F](g: GroupedData) {
   /** Calls an aggregate function expr on column A. The aggregate function returns a new column B */
-  def agg[A, B](expr: String => Column)(implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], ev: F <:< A): StructDataFrame[G with B] =
+  def agg[A, B](expr: String => Column)(implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], ev: F <:< A): StructDataFrame[G with B with Nil] =
     g.agg(expr(ka.key.value).as(kb.key.value)).toStructDF[G, B]
 
-  def agg[A, B, C](exprB: String => Column, exprC: String => Column)(implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], kc: StructKeyProvider[C], ev: F <:< A): StructDataFrame[G with B with C] = {
+  def agg[A, B, C](exprB: String => Column, exprC: String => Column)(implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], kc: StructKeyProvider[C], ev: F <:< A): StructDataFrame[G with B with C with Nil] = {
     val a = ka.key.value
     g.agg(exprB(a).as(kb.key.value), exprC(a).as(kc.key.value)).toStructDF[G, B, C]
   }
