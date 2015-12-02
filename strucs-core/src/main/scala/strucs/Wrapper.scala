@@ -8,7 +8,7 @@ import scala.reflect.macros.blackbox
   * @tparam W type of the Wrapper
   * @tparam V type of the value
   */
-trait Wrapper[W, V] {
+trait Wrapper[W, V] extends Serializable {
   def make(v: V): Option[W] // TODO use Try or Either ? Look at Spray or akka-http for error handling
   def value(w: W): V
 }
@@ -24,7 +24,12 @@ object Wrapper {
     if (fields.size != 1) c.abort(c.enclosingPosition, s"$wsym must have exactly one field. Please define a Wrapper[$wsym, ?] manually")
     val field = fields.head.getter
 
-    val expr = q"new strucs.CaseClassWrapper[$wsym, $vtype](new $wsym(_), _.$field)"
+    val expr = q"""
+      new strucs.Wrapper[$wsym, $vtype] {
+        def make(v: $vtype): Option[$wsym] = Some(new $wsym(v))
+        def value(w: $wsym): $vtype = w.$field
+      }
+    """
     //c.info(c.enclosingPosition, expr.toString, true)
     expr
   }
@@ -42,18 +47,3 @@ object Wrapper {
   }
 
 }
-
-
-
-
-
-
-/** Implementation of a Wrapper for a case class */
-class CaseClassWrapper[W, V](_apply: V => W, _value: W => V) extends Wrapper[W, V] {
-
-  override def value(w: W): V = _value(w)
-
-  override def make(v: V): Option[W] = Some(_apply(v))
-}
-
-

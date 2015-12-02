@@ -16,18 +16,27 @@ class StructDataFrameSpec extends FlatSpec with Matchers with TypeCheckedTripleE
   import sqlc.implicits._
   import StructDataFrame._
 
-
   val df = sc.makeRDD(Seq(
     ("Albert", 72),
     ("Gerard", 55),
     ("Gerard", 65))).toDF(
       "name"  , "age")
 
-  val sdf: StructDataFrame[Name with Age with Nil] = df.toStructDF[Name, Age]
+  val sdf1: StructDataFrame[Name with Nil] = df.toStructDF[Name]
+  val sdf2: StructDataFrame[Name with Age with Nil] = df.toStructDF[Name, Age]
 
   "a StructDataFrame" can "select 1 column by its type" in {
-    val actual: Array[Struct[Name with Nil]] = sdf.select[Name].collect()
-    val expected = Array(Struct(Name("Albert")), Struct(Name("Gerard")), Struct(Name("Gerard")))
+    val actual: Array[Name] = sdf1.select[Name].collect().map(_.get[Name])
+    val expected = Array(Name("Albert"), Name("Gerard"), Name("Gerard"))
+    actual should === (expected)
+  }
+
+  "a StructDataFrame" can "select 2 columns by their types" in {
+    val actual: Array[(Name, Age)] = sdf2.select[Name, Age].collect().map(s => (s.get[Name], s.get[Age]))
+    val expected = Array(
+      (Name("Albert"), Age(72)),
+      (Name("Gerard"), Age(55)),
+      (Name("Gerard"), Age(65)))
     actual should === (expected)
   }
 }

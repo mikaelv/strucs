@@ -4,7 +4,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import strucs.spark.StructDataFrame._
-import strucs.{Nil, Struct, StructKey, StructKeyProvider}
+import strucs._
 
 abstract class KeyCompanion[T](key: String) {
   implicit val keyProvider: StructKeyProvider[T] = StructKeyProvider[T](StructKey(key))
@@ -14,16 +14,23 @@ abstract class KeyCompanion[T](key: String) {
 case class Name(v: String) extends AnyVal
 object Name {
   implicit val keyProvider = StructKeyProvider[Name](StructKey("name"))
+  implicit val wrapper = Wrapper.materializeWrapper[Name, String]
 }
 case class Age(v: Int) extends AnyVal
 object Age {
   implicit val keyProvider = StructKeyProvider[Age](StructKey("age"))
+  implicit val wrapper = Wrapper.materializeWrapper[Age, Int]
+
 }
 case class AvgAge(v: Int) extends AnyVal
-object AvgAge extends KeyCompanion("avgAge")
+object AvgAge extends KeyCompanion("avgAge") {
+  implicit val wrapper = Wrapper.materializeWrapper[AvgAge, Int]
+}
 
 case class MaxAge(v: Int) extends AnyVal
-object MaxAge extends KeyCompanion("maxAge")
+object MaxAge extends KeyCompanion("maxAge") {
+  implicit val wrapper = Wrapper.materializeWrapper[MaxAge, Int]
+}
 
 
 /**
@@ -44,7 +51,7 @@ object SparkApp extends App {
   df.groupBy("name").agg(avg("age"), max("age")).show()
 
   // StructDataFrame: method calls are type safe after the initial conversion
-  val sdf: StructDataFrame[Name with Age] = df.toStructDF[Name, Age]
+  val sdf: StructDataFrame[Name with Age with Nil]= df.toStructDF[Name, Age]
   sdf.select[Name].show()
   val avgSdf = sdf.groupBy[Name].agg[Age, AvgAge](avg)
   avgSdf.show()
