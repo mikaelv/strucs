@@ -26,10 +26,17 @@ case class CreatePersonJsonPayload(name: String, age: Int)
 case class PersonModel(name: String, age: Int, address: Option[Address])
 case class PersonDatabaseRow(id: String, name: String, age: Int, addressId: String)
 ```
-
 * How can I define the common fields only once ?
 * Alternative: shapeless records
 * a Struct behaves more like a HSet
+* No FIX library for Scala
+```scala
+val order = Struct.empty + BeginString.Fix42 + MsgType.OrderSingle + 
+            OrderQty(10) + Symbol("^FTSE") 
+println(order.toFixMessageString)
+8=FIX.4.2?9=20?35=D?38=10?55=^FTSE?10=036?
+```
+
 ---
 # Adding fields
 

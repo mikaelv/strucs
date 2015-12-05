@@ -1,8 +1,10 @@
 package strucs.spark
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Column
 import org.apache.spark.sql.{Row, Column, GroupedData, DataFrame}
 import strucs._
+
 
 
 /**
@@ -11,6 +13,16 @@ import strucs._
  *                 when we want to extract single fields from a row (see RowMap)
  */
 class StructDataFrame[F](val df: DataFrame, wrappers: Map[StructKey, Wrapper[_, _]]) extends Serializable {
+  implicit def oneColumn[A >: F](implicit k: StructKeyProvider[A], wa: Wrapper[A, _]): ColumnMagnet = new ColumnMagnet {
+    type Result = A with Nil
+    override def apply(): (Seq[Column], Map[StructKey, Wrapper[_, _]]) = (Seq(new Column(k.key.value)),  Map(k.key -> wa))
+  }
+
+  def select(implicit magnet: ColumnMagnet): StructDataFrame[magnet.Result] = {
+    val (cols, newWrappers) = magnet.apply()
+    new StructDataFrame[magnet.Result](df.select(cols: _*), newWrappers)
+  }
+
   // TODO create a ColumnProvider ?
   def select[A >: F](implicit k: StructKeyProvider[A], wa: Wrapper[A, _]): StructDataFrame[A with Nil] =
     new StructDataFrame[A with Nil](df.select(k.key.value), Map(k.key -> wa))
@@ -30,6 +42,14 @@ class StructDataFrame[F](val df: DataFrame, wrappers: Map[StructKey, Wrapper[_, 
 }
 
 
+trait ColumnMagnet {
+  type Result
+  def apply(): (Seq[Column], Map[StructKey, Wrapper[_, _]])
+}
+
+object ColumnMagnet {
+
+}
 
 case class RowMap(row: Row, wrappers: Map[StructKey, Wrapper[_, _]]) extends Map[StructKey, Any] {
   // It is easier to rebuild a brand new map rather than fiddling with row.schema

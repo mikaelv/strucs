@@ -52,7 +52,8 @@ object SparkApp extends App {
 
   // StructDataFrame: method calls are type safe after the initial conversion
   val sdf: StructDataFrame[Name with Age with Nil]= df.toStructDF[Name, Age]
-  sdf.select[Name].show()
+  val magnet = sdf.oneColumn[Name]
+  sdf.select(magnet).show()
   val avgSdf = sdf.groupBy[Name].agg[Age, AvgAge](avg)
   avgSdf.show()
   avgSdf.select[AvgAge].show()
