@@ -52,11 +52,10 @@ object SparkApp extends App {
 
   // StructDataFrame: method calls are type safe after the initial conversion
   val sdf: StructDataFrame[Name with Age with Nil]= df.toStructDF[Name, Age]
-  val magnet = sdf.oneColumn[Name]
-  sdf.select(magnet).show()
+  sdf.select(sdf.Col[Name]).show()
   val avgSdf = sdf.groupBy[Name].agg[Age, AvgAge](avg)
   avgSdf.show()
-  avgSdf.select[AvgAge].show()
+  avgSdf.select(avgSdf.Col[AvgAge]).show()
 
   sdf.groupBy[Name].agg[Age, AvgAge, MaxAge](avg, max).select[Name, MaxAge].show() // TODO it would be nice to verify that avg cannot be called on a non-numeric type
 

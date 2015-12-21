@@ -13,22 +13,37 @@ import strucs._
  *                 when we want to extract single fields from a row (see RowMap)
  */
 class StructDataFrame[F](val df: DataFrame, wrappers: Map[StructKey, Wrapper[_, _]]) extends Serializable {
-  implicit def oneColumn[A >: F](implicit k: StructKeyProvider[A], wa: Wrapper[A, _]): ColumnMagnet = new ColumnMagnet {
-    type Result = A with Nil
-    override def apply(): (Seq[Column], Map[StructKey, Wrapper[_, _]]) = (Seq(new Column(k.key.value)),  Map(k.key -> wa))
+  type WrapperAny[A] = Wrapper[A, _]
+
+  /** Transforms a set of Types into a set of Column that can be used in spark's api */
+  trait Col[A] { self =>
+    type Mixin = A
+    def columns: Seq[Column]
+    def wrappers: Map[StructKey, Wrapper[_, _]]
+
+    def +[B >: F](colB: Col[B]): Col[A with B] = new Col[A with B] {
+      def columns = self.columns ++ colB.columns
+      def wrappers = self.wrappers ++ colB.wrappers
+    }
   }
 
-  def select(implicit magnet: ColumnMagnet): StructDataFrame[magnet.Result] = {
-    val (cols, newWrappers) = magnet.apply()
-    new StructDataFrame[magnet.Result](df.select(cols: _*), newWrappers)
+  object Col {
+    // TODO create a ColumnProvider instead of StructKeyProvider? That would allow to manage expressions as well
+    def apply[A >: F](implicit k: StructKeyProvider[A], wa: Wrapper[A, _]): Col[A] = new Col[A] {
+      def columns = Seq(new Column(k.key.value))
+
+      def wrappers = Map(k.key -> wa)
+    }
   }
 
-  // TODO create a ColumnProvider ?
-  def select[A >: F](implicit k: StructKeyProvider[A], wa: Wrapper[A, _]): StructDataFrame[A with Nil] =
-    new StructDataFrame[A with Nil](df.select(k.key.value), Map(k.key -> wa))
 
-  def select[A >:F, B >: F](implicit ka: StructKeyProvider[A], kb: StructKeyProvider[B], wa: Wrapper[A, _], wb: Wrapper[B, _]): StructDataFrame[A with B with Nil] =
-    new StructDataFrame[A with B with Nil](df.select(ka.key.value, kb.key.value), Map(ka.key -> wa, kb.key -> wb))
+  def select(columns: Col[_]): StructDataFrame[columns.Mixin] =
+    new StructDataFrame[columns.Mixin](df.select(columns.columns :_*), columns.wrappers)
+
+  // These are not strictly necessary, but they make the API nicer
+  def select[A >: F : WrapperAny : StructKeyProvider]: StructDataFrame[A] = select(Col[A])
+  def select[A >: F : WrapperAny : StructKeyProvider, B >: F : WrapperAny : StructKeyProvider ]: StructDataFrame[A with B] = select(Col[A] + Col[B])
+
 
   def groupBy[G](implicit k: StructKeyProvider[G], ev: F <:< G): StructGroupedData[G, F] =
     new StructGroupedData[G, F](df.groupBy(k.key.value))
@@ -42,14 +57,6 @@ class StructDataFrame[F](val df: DataFrame, wrappers: Map[StructKey, Wrapper[_, 
 }
 
 
-trait ColumnMagnet {
-  type Result
-  def apply(): (Seq[Column], Map[StructKey, Wrapper[_, _]])
-}
-
-object ColumnMagnet {
-
-}
 
 case class RowMap(row: Row, wrappers: Map[StructKey, Wrapper[_, _]]) extends Map[StructKey, Any] {
   // It is easier to rebuild a brand new map rather than fiddling with row.schema

@@ -26,9 +26,13 @@ class StructDataFrameSpec extends FlatSpec with Matchers with TypeCheckedTripleE
   val sdf2: StructDataFrame[Name with Age with Nil] = df.toStructDF[Name, Age]
 
   "a StructDataFrame" can "select 1 column by its type" in {
-    val actual: Array[Name] = sdf1.select[Name].collect().map(_.get[Name])
+    val actual: Array[Name] = sdf1.select(sdf1.Col[Name]).collect().map(_.get[Name])
     val expected = Array(Name("Albert"), Name("Gerard"), Name("Gerard"))
     actual should === (expected)
+  }
+
+  it should "prevent from selecting a column that is not in the DataFrame" in {
+    assertTypeError("sdf1.select(sdf1.Col[AvgAge])")
   }
 
   "a StructDataFrame" can "select 2 columns by their types" in {
