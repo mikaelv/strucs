@@ -8,6 +8,7 @@ object BuildSettings {
     scalaVersion := "2.11.6",
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
+    resolvers += "Apache snapshot" at "https://repository.apache.org/content/groups/snapshots/",
     scalacOptions ++= Seq()
   )
 }

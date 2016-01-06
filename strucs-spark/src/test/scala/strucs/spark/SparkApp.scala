@@ -11,9 +11,22 @@ abstract class KeyCompanion[T](key: String) {
 }
 
 // TODO explore tagged types
+case class Id(v: Int) extends AnyVal
+object Id {
+  implicit val keyProvider = StructKeyProvider[Id](StructKey("id"))
+  implicit val wrapper = Wrapper.materializeWrapper[Id, Int]
+}
+
+case class City(v: String) extends AnyVal
+object City {
+  implicit val keyProvider: StructKeyProvider[City] = StructKeyProvider[City](StructKey("city"))
+  implicit val wrapper = Wrapper.materializeWrapper[City, String]
+}
+
+
 case class Name(v: String) extends AnyVal
 object Name {
-  implicit val keyProvider = StructKeyProvider[Name](StructKey("name"))
+  implicit val keyProvider: StructKeyProvider[Name] = StructKeyProvider[Name](StructKey("name"))
   implicit val wrapper = Wrapper.materializeWrapper[Name, String]
 }
 case class Age(v: Int) extends AnyVal
@@ -22,9 +35,9 @@ object Age {
   implicit val wrapper = Wrapper.materializeWrapper[Age, Int]
 
 }
-case class AvgAge(v: Int) extends AnyVal
+case class AvgAge(v: Double) extends AnyVal
 object AvgAge extends KeyCompanion("avgAge") {
-  implicit val wrapper = Wrapper.materializeWrapper[AvgAge, Int]
+  implicit val wrapper = Wrapper.materializeWrapper[AvgAge, Double]
 }
 
 case class MaxAge(v: Int) extends AnyVal
@@ -51,11 +64,11 @@ object SparkApp extends App {
   df.groupBy("name").agg(avg("age"), max("age")).show()
 
   // StructDataFrame: method calls are type safe after the initial conversion
-  val sdf: StructDataFrame[Name with Age with Nil]= df.toStructDF[Name, Age]
-  sdf.select(sdf.Col[Name]).show()
+  val sdf: StructDataFrame[Name with Age]= df.toStructDF[Name, Age]
+  sdf.select[Name].show()
   val avgSdf = sdf.groupBy[Name].agg[Age, AvgAge](avg)
   avgSdf.show()
-  avgSdf.select(avgSdf.Col[AvgAge]).show()
+  avgSdf.select[AvgAge].show()
 
   sdf.groupBy[Name].agg[Age, AvgAge, MaxAge](avg, max).select[Name, MaxAge].show() // TODO it would be nice to verify that avg cannot be called on a non-numeric type
 
